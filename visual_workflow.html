@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>LIBS Application - Communication Flow Diagram</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #34495e;
+            margin-top: 30px;
+            border-left: 4px solid #3498db;
+            padding-left: 10px;
+        }
+        .flow-diagram {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin: 30px 0;
+        }
+        .flow-step {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            padding: 20px;
+            background: #ecf0f1;
+            border-radius: 8px;
+            border-left: 5px solid #3498db;
+        }
+        .flow-step.reverse {
+            flex-direction: row-reverse;
+            border-left: none;
+            border-right: 5px solid #27ae60;
+            background: #d5f4e6;
+        }
+        .component {
+            min-width: 200px;
+            padding: 15px;
+            background: white;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            text-align: center;
+            font-weight: bold;
+        }
+        .frontend {
+            background: #3498db;
+            color: white;
+        }
+        .backend {
+            background: #27ae60;
+            color: white;
+        }
+        .arrow {
+            font-size: 30px;
+            color: #34495e;
+        }
+        .request-box, .response-box {
+            flex: 1;
+            padding: 15px;
+            background: white;
+            border-radius: 5px;
+            border: 2px dashed #95a5a6;
+        }
+        .request-box {
+            border-color: #3498db;
+        }
+        .response-box {
+            border-color: #27ae60;
+        }
+        .code-block {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            margin: 10px 0;
+        }
+        .endpoint {
+            background: #34495e;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-family: monospace;
+        }
+        .method {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        .method.post {
+            background: #e74c3c;
+            color: white;
+        }
+        .method.get {
+            background: #3498db;
+            color: white;
+        }
+        .data-flow {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .data-card {
+            background: #ecf0f1;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 4px solid #3498db;
+        }
+        .data-card h3 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background: #34495e;
+            color: white;
+        }
+        tr:hover {
+            background: #f5f5f5;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔌 LIBS Application Communication Flow</h1>
+        <p style="text-align: center; color: #7f8c8d; font-size: 18px;">
+            Visual demonstration of communication between <strong>index.html</strong> (Frontend) and <strong>backend.py</strong> (Backend)
+        </p>
+
+        <h2>📡 Communication Architecture</h2>
+        <div class="flow-diagram">
+            <div style="text-align: center; margin: 20px 0;">
+                <div class="component frontend" style="display: inline-block; margin-right: 50px;">
+                    🌐 Frontend (index.html)<br>
+                    <small>Browser Client</small>
+                </div>
+                <span class="arrow">⇄</span>
+                <div class="component backend" style="display: inline-block; margin-left: 50px;">
+                    🐍 Backend (backend.py)<br>
+                    <small>Flask Server (Port 5000)</small>
+                </div>
+            </div>
+        </div>
+
+        <h2>🔄 Request Flow #1: Loading a File</h2>
+        <div class="flow-diagram">
+            <div class="flow-step">
+                <div class="component frontend">Frontend</div>
+                <div class="arrow">→</div>
+                <div class="request-box">
+                    <strong>POST /api/load_file</strong><br>
+                    <div class="code-block">
+{<br>
+&nbsp;&nbsp;"file_path": "/path/to/file.h5"<br>
+}
+                    </div>
+                </div>
+            </div>
+            <div class="flow-step reverse">
+                <div class="component backend">Backend</div>
+                <div class="arrow">←</div>
+                <div class="response-box">
+                    <strong>Response (JSON)</strong><br>
+                    <div class="code-block">
+{<br>
+&nbsp;&nbsp;"success": true,<br>
+&nbsp;&nbsp;"wavelength": [...],<br>
+&nbsp;&nbsp;"max_data": [...],<br>
+&nbsp;&nbsp;"x_pos": [...],<br>
+&nbsp;&nbsp;"y_pos": [...],<br>
+&nbsp;&nbsp;"data_shape": [1000, 2048]<br>
+}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <h2>📊 Request Flow #2: Generating Spectrum Plot</h2>
+        <div class="flow-diagram">
+            <div class="flow-step">
+                <div class="component frontend">Frontend</div>
+                <div class="arrow">→</div>
+                <div class="request-box">
+                    <strong>POST /api/plot_spectrum</strong><br>
+                    <div class="code-block">
+{<br>
+&nbsp;&nbsp;"wavelength": [...],<br>
+&nbsp;&nbsp;"max_data": [...],<br>
+&nbsp;&nbsp;"title": "Maximum Intensity Spectrum"<br>
+}
+                    </div>
+                </div>
+            </div>
+            <div class="flow-step reverse">
+                <div class="component backend">Backend</div>
+                <div class="arrow">←</div>
+                <div class="response-box">
+                    <strong>Response (Plotly JSON)</strong><br>
+                    <div class="code-block">
+{<br>
+&nbsp;&nbsp;"success": true,<br>
+&nbsp;&nbsp;"plot": {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;"data": [...],<br>
+&nbsp;&nbsp;&nbsp;&nbsp;"layout": {...}<br>
+&nbsp;&nbsp;}<br>
+}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <h2>🧮 Request Flow #3: Calculating Intensity</h2>
+        <div class="flow-diagram">
+            <div class="flow-step">
+                <div class="component frontend">Frontend</div>
+                <div class="arrow">→</div>
+                <div class="request-box">
+                    <strong>POST /api/calculate_intensity</strong><br>
+                    <div class="code-block">
+{<br>
+&nbsp;&nbsp;"file_path": "/path/to/file.h5",<br>
+&nbsp;&nbsp;"b1_w": 280.1,<br>
+&nbsp;&nbsp;"b2_w": 280.6,<br>
+&nbsp;&nbsp;"method": "voigt_fit"<br>
+}
+                    </div>
+                </div>
+            </div>
+            <div class="flow-step reverse">
+                <div class="component backend">Backend</div>
+                <div class="arrow">←</div>
+                <div class="response-box">
+                    <strong>Response (JSON)</strong><br>
+                    <div class="code-block">
+{<br>
+&nbsp;&nbsp;"success": true,<br>
+&nbsp;&nbsp;"intensity": [1.2, 3.4, 5.6, ...],<br>
+&nbsp;&nbsp;"x_pos": [0.1, 0.2, 0.3, ...],<br>
+&nbsp;&nbsp;"y_pos": [0.1, 0.2, 0.3, ...]<br>
+}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <h2>🗺️ Request Flow #4: Plotting Intensity Map</h2>
+        <div class="flow-diagram">
+            <div class="flow-step">
+                <div class="component frontend">Frontend</div>
+                <div class="arrow">→</div>
+                <div class="request-box">
+                    <strong>POST /api/plot_intensity_map</strong><br>
+                    <div class="code-block">
+{<br>
+&nbsp;&nbsp;"intensity": [...],<br>
+&nbsp;&nbsp;"x_pos": [...],<br>
+&nbsp;&nbsp;"y_pos": [...],<br>
+&nbsp;&nbsp;"title": "Peak Intensity Map"<br>
+}
+                    </div>
+                </div>
+            </div>
+            <div class="flow-step reverse">
+                <div class="component backend">Backend</div>
+                <div class="arrow">←</div>
+                <div class="response-box">
+                    <strong>Response (Plotly JSON)</strong><br>
+                    <div class="code-block">
+{<br>
+&nbsp;&nbsp;"success": true,<br>
+&nbsp;&nbsp;"plot": {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;"data": [...],<br>
+&nbsp;&nbsp;&nbsp;&nbsp;"layout": {...}<br>
+&nbsp;&nbsp;}<br>
+}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <h2>📋 API Endpoints Summary</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Endpoint</th>
+                    <th>Method</th>
+                    <th>Purpose</th>
+                    <th>Request Data</th>
+                    <th>Response Data</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>/</code></td>
+                    <td><span class="method get">GET</span></td>
+                    <td>Serve HTML page</td>
+                    <td>None</td>
+                    <td>HTML file (index.html)</td>
+                </tr>
+                <tr>
+                    <td><code>/api/load_file</code></td>
+                    <td><span class="method post">POST</span></td>
+                    <td>Load HDF5 file and extract metadata</td>
+                    <td><code>{file_path: string}</code></td>
+                    <td>wavelength, max_data, x_pos, y_pos, data_shape</td>
+                </tr>
+                <tr>
+                    <td><code>/api/plot_spectrum</code></td>
+                    <td><span class="method post">POST</span></td>
+                    <td>Generate interactive spectrum plot</td>
+                    <td>wavelength, max_data, title</td>
+                    <td>Plotly figure JSON</td>
+                </tr>
+                <tr>
+                    <td><code>/api/calculate_intensity</code></td>
+                    <td><span class="method post">POST</span></td>
+                    <td>Calculate peak intensity using selected method</td>
+                    <td>file_path, b1_w, b2_w, method</td>
+                    <td>intensity array, x_pos, y_pos</td>
+                </tr>
+                <tr>
+                    <td><code>/api/plot_intensity_map</code></td>
+                    <td><span class="method post">POST</span></td>
+                    <td>Generate interactive intensity map</td>
+                    <td>intensity, x_pos, y_pos, title</td>
+                    <td>Plotly scatter plot JSON</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h2>💻 Code Example: Frontend Request</h2>
+        <div class="code-block">
+// Frontend (index.html) - Using jQuery AJAX<br>
+$.ajax({<br>
+&nbsp;&nbsp;url: 'http://localhost:5000/api/load_file',<br>
+&nbsp;&nbsp;method: 'POST',<br>
+&nbsp;&nbsp;contentType: 'application/json',<br>
+&nbsp;&nbsp;data: JSON.stringify({file_path: filePath}),<br>
+&nbsp;&nbsp;success: function(data) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;if (data.success) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Process response data<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;console.log(data.wavelength);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;},<br>
+&nbsp;&nbsp;error: function(xhr, status, error) {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;alert('Error: ' + error);<br>
+&nbsp;&nbsp;}<br>
+});
+        </div>
+
+        <h2>🐍 Code Example: Backend Response</h2>
+        <div class="code-block">
+# Backend (backend.py) - Flask route handler<br>
+@app.route('/api/load_file', methods=['POST'])<br>
+def load_file():<br>
+&nbsp;&nbsp;file_path = request.json['file_path']<br>
+&nbsp;&nbsp;<br>
+&nbsp;&nbsp;with h5py.File(file_path, "r") as file:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;wavelength = file['measurements/...'][:]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;data = file['/measurements/...'][:]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;max_data = np.max(data, axis=0).tolist()<br>
+&nbsp;&nbsp;<br>
+&nbsp;&nbsp;return jsonify({<br>
+&nbsp;&nbsp;&nbsp;&nbsp;'success': True,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;'wavelength': wavelength.tolist(),<br>
+&nbsp;&nbsp;&nbsp;&nbsp;'max_data': max_data<br>
+&nbsp;&nbsp;})
+        </div>
+
+        <h2>🔄 Complete Workflow Sequence</h2>
+        <div style="background: #ecf0f1; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <ol style="line-height: 2;">
+                <li><strong>User opens browser</strong> → GET request to <code>http://localhost:5000/</code></li>
+                <li><strong>Backend serves</strong> → Returns <code>index.html</code> file</li>
+                <li><strong>User enters file path</strong> → Clicks "Load File" button</li>
+                <li><strong>Frontend sends</strong> → POST <code>/api/load_file</code> with file_path</li>
+                <li><strong>Backend processes</strong> → Opens HDF5 file, extracts data</li>
+                <li><strong>Backend responds</strong> → Returns JSON with wavelength, max_data, positions</li>
+                <li><strong>Frontend receives</strong> → Sends data to <code>/api/plot_spectrum</code></li>
+                <li><strong>Backend generates</strong> → Creates Plotly figure JSON</li>
+                <li><strong>Frontend displays</strong> → Renders interactive spectrum plot</li>
+                <li><strong>User selects wavelengths</strong> → Clicks on plot (b1_w, b2_w)</li>
+                <li><strong>User clicks Calculate</strong> → POST <code>/api/calculate_intensity</code></li>
+                <li><strong>Backend calculates</strong> → Runs voigt_fit/peak_intensity/simple_sum</li>
+                <li><strong>Backend responds</strong> → Returns intensity array with positions</li>
+                <li><strong>Frontend sends</strong> → POST <code>/api/plot_intensity_map</code></li>
+                <li><strong>Backend generates</strong> → Creates Plotly scatter plot JSON</li>
+                <li><strong>Frontend displays</strong> → Renders interactive intensity map</li>
+            </ol>
+        </div>
+
+        <h2>🔑 Key Communication Features</h2>
+        <div class="data-flow">
+            <div class="data-card">
+                <h3>✅ JSON Format</h3>
+                <p>All data is exchanged in JSON format, making it easy to parse and process on both ends.</p>
+            </div>
+            <div class="data-card">
+                <h3>✅ RESTful API</h3>
+                <p>Uses standard HTTP methods (GET, POST) following REST principles for clear API design.</p>
+            </div>
+            <div class="data-card">
+                <h3>✅ CORS Enabled</h3>
+                <p>Backend uses Flask-CORS to allow cross-origin requests from the frontend.</p>
+            </div>
+            <div class="data-card">
+                <h3>✅ Error Handling</h3>
+                <p>Both frontend and backend include error handling with meaningful error messages.</p>
+            </div>
+        </div>
+
+        <h2>📡 Network Protocol</h2>
+        <div style="background: #2c3e50; color: white; padding: 20px; border-radius: 8px;">
+            <p><strong>Protocol:</strong> HTTP/1.1</p>
+            <p><strong>Server:</strong> Flask (Python WSGI server)</p>
+            <p><strong>Port:</strong> 5000</p>
+            <p><strong>Content-Type:</strong> application/json (for API requests)</p>
+            <p><strong>Data Format:</strong> JSON (JavaScript Object Notation)</p>
+            <p><strong>Transport:</strong> TCP/IP</p>
+        </div>
+    </div>
+</body>
+</html>

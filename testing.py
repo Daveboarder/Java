@@ -1,0 +1,69 @@
+from LIBSmethods import voigt
+import numpy as np
+import h5py
+import matplotlib.pyplot as plt
+from scipy.optimize import curve_fit
+
+def print_hdf5_tree(name, obj, prefix="", is_last=True):
+    """Print HDF5 structure as a tree"""
+    connector = "└── " if is_last else "├── "
+    print(f"{prefix}{connector}{name.split('/')[-1]}")
+    
+    if isinstance(obj, h5py.Group):
+        items = list(obj.items())
+        for i, (key, value) in enumerate(items):
+            is_last_item = (i == len(items) - 1)
+            extension = "    " if is_last else "│   "
+            print_hdf5_tree(f"{name}/{key}", value, prefix + extension, is_last_item)
+    
+
+with h5py.File('/home/LIBS/prochazka/data/Running_projects/25_0069_3D_chemical_imaging/Measurements/mandible 266nm/mandible_266_v1.h5', 'r') as file:
+    wavelength = file['measurements/Measurement_1/libs/calibration'][:]
+    data = file['/measurements/Measurement_1/libs/data'][:]
+    x_pos = file['measurements/Measurement_1/libs/metadata/X_pos'][:]
+    y_pos = file['measurements/Measurement_1/libs/metadata/Y_pos'][:]
+    #write a structured list of all variables in the hdf5 file to a terminal
+    print("HDF5 File Structure:")
+    print("=" * 50)
+    for key in file.keys():
+        print_hdf5_tree(key, file[key], "", True)
+
+    b1_w = 280.1
+    b2_w = 280.6
+    b1 = np.argmin(np.abs(wavelength - b1_w))
+    b2 = np.argmin(np.abs(wavelength - b2_w))
+    gamma = 0.1
+    sigma = 0.006
+    x = wavelength[b1:b2]
+    data_slice = data[:,b1:b2]
+
+    max_data = np.max(data_slice, axis=0)
+    a1 = b1 + np.argmax(max_data)
+    x0 = wavelength[a1]
+    print(f"x0: {x0}")
+
+    basis = voigt(x, x0, np.max(max_data), gamma, sigma)
+    denom = np.dot(basis, basis)
+    amplitudes = data_slice @ basis / denom
+    popt, pcov = curve_fit(voigt, x, max_data, p0=[x0, np.max(max_data), gamma, sigma])
+    #correlation coefficient between max_data and real_fit from pcov
+    std = np.sqrt(np.diag(pcov))
+    correlation = pcov / (std[0] * std[1])
+    print(f"correlation: {correlation}")
+    print(f"std: {std}")
+    real_fit=voigt(x, *popt)
+    intensity = np.trapz(real_fit, x)
+    print(f"pcov: {pcov}")
+    print(f"intensity: {intensity}")
+    print(f"amplitudes: {amplitudes.shape}")
+    print(f"denom: {denom}")
+    print(f"basis: {basis}")
+    print(f"max data: {max_data.shape}")
+    print(f"real fit: {popt}")
+    
+    plt.plot(x, max_data, label='Max Data')
+    plt.plot(x, real_fit, label='Real Fit')
+    plt.plot(x, basis*np.max(max_data), label='Basis')
+    plt.legend()
+    plt.savefig('real_fit.png')
+    plt.close()

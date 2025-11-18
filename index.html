@@ -1,0 +1,527 @@
+<!-- web_client.html - Open in browser -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>LIBS Data Processing</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            max-width: 1400px;
+        }
+        .plot-container {
+            margin: 20px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            min-height: 400px;
+            width: 100%;
+        }
+        h2 {
+            color: #333;
+        }
+        .info-text {
+            color: #666;
+            font-size: 0.9em;
+            font-style: italic;
+            margin-top: 5px;
+        }
+        .button-group {
+            margin: 10px 0;
+        }
+        .saved-lines {
+            margin-top: 20px;
+            padding: 10px;
+            background: #f0f0f0;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>LIBS Mapping Tool</h1>
+    <div style="margin-bottom: 20px;">
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+            <input type="text" id="file_path" placeholder="File path on server" style="width: 400px; padding: 5px;">
+            <button onclick="loadFile()" style="padding: 5px 15px;">Load File</button>
+            <button onclick="toggleFileBrowser()" style="padding: 5px 15px; background: #3498db; color: white;">Browse Files</button>
+        </div>
+        
+        <!-- File Browser -->
+        <div id="file_browser" style="display: none; border: 1px solid #ddd; border-radius: 5px; padding: 15px; background: #f9f9f9; max-height: 400px; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h3 style="margin: 0;">File Browser</h3>
+                <button onclick="toggleFileBrowser()" style="padding: 3px 10px;">Close</button>
+            </div>
+            <div id="browser_path" style="margin-bottom: 10px; padding: 5px; background: white; border: 1px solid #ccc; font-family: monospace; word-break: break-all;">
+                Loading...
+            </div>
+            <div id="browser_navigation" style="margin-bottom: 10px;">
+                <button onclick="browseUp()" id="up_button" style="padding: 5px 10px; display: none;">↑ Up</button>
+            </div>
+            <div id="browser_content" style="background: white; border: 1px solid #ccc; padding: 10px; min-height: 200px;">
+                Loading...
+            </div>
+        </div>
+    </div>
+    <div id="controls" style="display:none; margin-top: 20px;">
+        <h3>Select Wavelengths:</h3>
+        <input type="text" id="line_name" placeholder="Line Name" style="width: 100px; padding: 5px;">
+        <input type="number" id="b1_w" placeholder="b1 (nm)" style="width: 100px; padding: 5px;">
+        <input type="number" id="b2_w" placeholder="b2 (nm)" style="width: 100px; padding: 5px;">
+        <select id="method" style="width: 150px; padding: 5px;">
+            <option value="voigt_fit">Voigt Fit</option>
+            <option value="peak_intensity">Triangle Correlation</option>
+            <option value="simple_sum">Simple Sum</option>
+            <option value="simple_voigt_fit">Simple Voigt Fit</option>
+        </select>
+        <div class="button-group">
+            <button onclick="calculateIntensity()" style="padding: 5px 15px;">Calculate Intensity</button>
+        </div>
+        <p class="info-text">Tip: Click on the spectrum plot below to select wavelengths</p>
+        
+        <div class="saved-lines" id="plot_section" style="display:none;">
+            <h3>Plot Intensity Map:</h3>
+            <select id="saved_lines_select" style="width: 200px; padding: 5px;">
+                <option value="">-- Select a saved line --</option>
+            </select>
+            <button onclick="plotIntensityMap()" style="padding: 5px 15px; margin-left: 10px;">Plot Map</button>
+        </div>
+        
+        <div class="saved-lines" id="ratio_section" style="display:none;">
+            <h3>Plot Intensity Ratio:</h3>
+            <label>Numerator (Line 1):</label>
+            <select id="ratio_line1_select" style="width: 200px; padding: 5px; margin-left: 10px;">
+                <option value="">-- Select first line --</option>
+            </select>
+            <label style="margin-left: 20px;">Denominator (Line 2):</label>
+            <select id="ratio_line2_select" style="width: 200px; padding: 5px; margin-left: 10px;">
+                <option value="">-- Select second line --</option>
+            </select>
+            <button onclick="plotIntensityRatio()" style="padding: 5px 15px; margin-left: 10px;">Plot Ratio</button>
+        </div>
+    </div>
+    
+    <div id="spectrum_section" style="display:none;">
+        <h2>Spectrum Plot</h2>
+        <p class="info-text">Click on the plot to select wavelengths (first click fills b1, second click fills b2)</p>
+        <div id="spectrum_plot" class="plot-container"></div>
+    </div>
+    
+    <div id="map_section" style="display:none;">
+        <h2>Intensity Map</h2>
+        <div id="intensity_map" class="plot-container"></div>
+    </div>
+    
+    <script>
+        const SERVER_URL = 'http://localhost:5000';
+        
+        // Store plot data for event handling
+        let spectrumData = null;
+        
+        // Dictionary to store calculated intensities
+        let savedIntensities = {};
+        
+        function loadFile() {
+            const filePath = $('#file_path').val();
+            $.ajax({
+                url: SERVER_URL + '/api/load_file',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({file_path: filePath}),
+                success: function(data) {
+                    if (data.success) {
+                        $('#controls').show();
+                        console.log('File loaded successfully', data);
+                        
+                        spectrumData = data;
+                        
+                        // Plot the spectrum with Plotly
+                        $.ajax({
+                            url: SERVER_URL + '/api/plot_spectrum',
+                            method: 'POST',
+                            contentType: 'application/json',
+                            data: JSON.stringify({
+                                wavelength: data.wavelength,
+                                max_data: data.max_data,
+                                title: 'Maximum Intensity Spectrum - Click to select wavelengths'
+                            }),
+                            success: function(response) {
+                                if (response.success) {
+                                    $('#spectrum_section').show();
+                                    const plotData = response.plot;
+                                    Plotly.newPlot('spectrum_plot', plotData.data, plotData.layout, {responsive: true});
+                                    
+                                    // Add click event listener to capture wavelength values
+                                    document.getElementById('spectrum_plot').on('plotly_click', function(data) {
+                                        const point = data.points[0];
+                                        const wavelength = point.x;
+                                        
+                                        if (!$('#b1_w').val() || $('#b1_w').val() === '') {
+                                            $('#b1_w').val(wavelength.toFixed(2));
+                                            console.log('Selected b1_w:', wavelength);
+                                        } else if (!$('#b2_w').val() || $('#b2_w').val() === '') {
+                                            $('#b2_w').val(wavelength.toFixed(2));
+                                            console.log('Selected b2_w:', wavelength);
+                                        } else {
+                                            $('#b2_w').val($('#b1_w').val());
+                                            $('#b1_w').val(wavelength.toFixed(2));
+                                            console.log('Updated wavelengths - b1_w:', wavelength, 'b2_w:', $('#b2_w').val());
+                                        }
+                                        
+                                        sendWavelengthSelection(wavelength);
+                                    });
+                                } else {
+                                    alert('Failed to generate spectrum plot: ' + response.error);
+                                }
+                            },
+                            error: function(xhr, status, error) {
+                                console.error('Spectrum plot failed:', error);
+                                alert('Failed to generate spectrum plot: ' + error);
+                            }
+                        });
+                    } else {
+                        console.error('Error:', data.error);
+                        alert('Error: ' + data.error);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Request failed:', error);
+                    alert('Failed to load file: ' + error);
+                }
+            });
+        }
+        
+        function sendWavelengthSelection(wavelength) {
+            $.ajax({
+                url: SERVER_URL + '/api/selected_wavelength',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    wavelength: wavelength,
+                    timestamp: new Date().toISOString()
+                }),
+                success: function(response) {
+                    console.log('Wavelength selection sent:', response);
+                },
+                error: function(xhr, status, error) {
+                    console.error('Failed to send wavelength:', error);
+                }
+            });
+        }
+        
+        function calculateIntensity() {
+            const filePath = $('#file_path').val();
+            const lineName = $('#line_name').val().trim();
+            
+            // Validate line name
+            if (!lineName || lineName === '') {
+                alert('Please enter a line name before calculating intensity.');
+                return;
+            }
+            
+            // Check if line name already exists
+            if (savedIntensities[lineName]) {
+                if (!confirm(`Line "${lineName}" already exists. Do you want to overwrite it?`)) {
+                    return;
+                }
+            }
+            
+            $.ajax({
+                url: SERVER_URL + '/api/calculate_intensity',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    file_path: filePath,
+                    b1_w: parseFloat($('#b1_w').val()),
+                    b2_w: parseFloat($('#b2_w').val()),
+                    method: $('#method').val()
+                }),
+                success: function(data) {
+                    if (data.success) {
+                        // Save intensity data to dictionary
+                        savedIntensities[lineName] = {
+                            intensity: data.intensity,
+                            x_pos: data.x_pos,
+                            y_pos: data.y_pos,
+                            x_len: data.x_len,
+                            y_len: data.y_len,
+                            x_step: data.x_step,
+                            y_step: data.y_step,
+                            b1_w: parseFloat($('#b1_w').val()),
+                            b2_w: parseFloat($('#b2_w').val()),
+                            method: $('#method').val(),
+                            timestamp: new Date().toISOString()
+                        };
+                        
+                        // Update the select dropdowns
+                        updateSavedLinesSelect();
+                        
+                        // Show plot and ratio sections
+                        $('#plot_section').show();
+                        $('#ratio_section').show();
+                        
+                        alert(`Intensity calculated and saved as "${lineName}"`);
+                        console.log('Intensity saved:', lineName, savedIntensities[lineName]);
+                    } else {
+                        console.error('Error:', data.error);
+                        alert('Error: ' + data.error);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Request failed:', error);
+                    alert('Failed to calculate intensity: ' + error);
+                }
+            });
+        }
+        
+        function updateSavedLinesSelect() {
+            const select = $('#saved_lines_select');
+            const ratioSelect1 = $('#ratio_line1_select');
+            const ratioSelect2 = $('#ratio_line2_select');
+            
+            // Clear all selects
+            select.empty();
+            ratioSelect1.empty();
+            ratioSelect2.empty();
+            
+            // Add default options
+            select.append('<option value="">-- Select a saved line --</option>');
+            ratioSelect1.append('<option value="">-- Select first line --</option>');
+            ratioSelect2.append('<option value="">-- Select second line --</option>');
+            
+            // Add all saved line names to all selects
+            for (const lineName in savedIntensities) {
+                const lineData = savedIntensities[lineName];
+                const optionText = `${lineName} (${lineData.method}, ${lineData.b1_w}-${lineData.b2_w} nm)`;
+                const option = `<option value="${lineName}">${optionText}</option>`;
+                
+                select.append(option);
+                ratioSelect1.append(option);
+                ratioSelect2.append(option);
+            }
+        }
+        
+        function plotIntensityMap() {
+            const selectedLineName = $('#saved_lines_select').val();
+            
+            if (!selectedLineName || selectedLineName === '') {
+                alert('Please select a saved line to plot.');
+                return;
+            }
+            
+            const lineData = savedIntensities[selectedLineName];
+            
+            if (!lineData) {
+                alert('Selected line data not found.');
+                return;
+            }
+            
+            // Call plot endpoint with saved data
+            $.ajax({
+                url: SERVER_URL + '/api/plot_intensity_map',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    intensity: lineData.intensity,
+                    x_pos: lineData.x_pos,
+                    y_pos: lineData.y_pos,
+                    x_len: lineData.x_len,
+                    y_len: lineData.y_len,
+                    x_step: lineData.x_step,
+                    y_step: lineData.y_step,
+                    title: `Peak Intensity Map - ${selectedLineName} (${lineData.b1_w}-${lineData.b2_w} nm)`
+                }),
+                success: function(response) {
+                    if (response.success) {
+                        const plotData = response.plot;
+                        Plotly.newPlot('intensity_map', plotData.data, plotData.layout, {responsive: true});
+                        $('#map_section').show();
+                    } else {
+                        alert('Failed to generate intensity map: ' + (response.error || 'Unknown error'));
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Plot failed:', error);
+                    alert('Failed to generate plot: ' + error);
+                }
+            });
+        }
+
+        function plotIntensityRatio() {
+            const line1Name = $('#ratio_line1_select').val();
+            const line2Name = $('#ratio_line2_select').val();
+            
+            // Validate selections
+            if (!line1Name || line1Name === '') {
+                alert('Please select the first line (numerator).');
+                return;
+            }
+            
+            if (!line2Name || line2Name === '') {
+                alert('Please select the second line (denominator).');
+                return;
+            }
+            
+            if (line1Name === line2Name) {
+                alert('Please select two different lines for the ratio.');
+                return;
+            }
+            
+            const line1Data = savedIntensities[line1Name];
+            const line2Data = savedIntensities[line2Name];
+            
+            if (!line1Data || !line2Data) {
+                alert('Selected line data not found.');
+                return;
+            }
+            
+            // Check if arrays have the same length
+            if (line1Data.intensity.length !== line2Data.intensity.length) {
+                alert('Error: The two selected lines have different numbers of data points. Cannot calculate ratio.');
+                return;
+            }
+            
+            // Calculate ratio: intensity1 / intensity2
+            const ratio = line1Data.intensity.map((int1, index) => {
+                const int2 = line2Data.intensity[index];
+                // Avoid division by zero
+                return int2 !== 0 ? int1 / int2 : 0;
+            });
+            
+            // Use position data from line1 (assuming same positions)
+            const x_pos = line1Data.x_pos;
+            const y_pos = line1Data.y_pos;
+            
+            // Call plot endpoint with ratio data
+            $.ajax({
+                url: SERVER_URL + '/api/plot_intensity_map',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    intensity: ratio,
+                    x_pos: x_pos,
+                    y_pos: y_pos,
+                    x_len: line1Data.x_len,
+                    y_len: line1Data.y_len,
+                    x_step: line1Data.x_step,
+                    y_step: line1Data.y_step,
+                    title: `Intensity Ratio: ${line1Name} / ${line2Name}`
+                }),
+                success: function(response) {
+                    if (response.success) {
+                        const plotData = response.plot;
+                        Plotly.newPlot('intensity_map', plotData.data, plotData.layout, {responsive: true});
+                        $('#map_section').show();
+                    } else {
+                        alert('Failed to generate intensity ratio map: ' + (response.error || 'Unknown error'));
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Plot failed:', error);
+                    alert('Failed to generate ratio plot: ' + error);
+                }
+            });
+        }
+
+        // File browser variables
+        let currentBrowsePath = '/';
+        
+        function toggleFileBrowser() {
+            const browser = $('#file_browser');
+            if (browser.is(':visible')) {
+                browser.hide();
+            } else {
+                browser.show();
+                browseDirectory('/');
+            }
+        }
+        
+        function browseDirectory(path) {
+            currentBrowsePath = path;
+            $('#browser_content').html('Loading...');
+            
+            $.ajax({
+                url: SERVER_URL + '/api/browse_files',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({path: path}),
+                success: function(response) {
+                    if (response.success) {
+                        displayDirectory(response);
+                    } else {
+                        $('#browser_content').html('<p style="color: red;">Error: ' + response.error + '</p>');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    $('#browser_content').html('<p style="color: red;">Failed to browse directory: ' + error + '</p>');
+                }
+            });
+        }
+        
+        function displayDirectory(data) {
+            // Update path display
+            $('#browser_path').text(data.current_path);
+            
+            // Show/hide up button
+            if (data.parent_path) {
+                $('#up_button').show().off('click').on('click', function() {
+                    browseDirectory(data.parent_path);
+                });
+            } else {
+                $('#up_button').hide();
+            }
+            
+            // Display items
+            let html = '<table style="width: 100%; border-collapse: collapse;">';
+            html += '<tr style="background: #f0f0f0;"><th style="padding: 8px; text-align: left;">Name</th><th style="padding: 8px; text-align: left;">Type</th><th style="padding: 8px; text-align: right;">Size</th></tr>';
+            
+            // Show directories first
+            data.items.forEach(function(item) {
+                if (item.is_directory) {
+                    html += `<tr style="cursor: pointer; border-bottom: 1px solid #eee;" onclick="browseDirectory('${item.path}')">`;
+                    html += `<td style="padding: 8px;"><strong>📁 ${item.name}</strong></td>`;
+                    html += `<td style="padding: 8px;">Directory</td>`;
+                    html += `<td style="padding: 8px; text-align: right;">-</td>`;
+                    html += '</tr>';
+                }
+            });
+            
+            // Then show files
+            data.items.forEach(function(item) {
+                if (!item.is_directory) {
+                    const isH5File = item.name.toLowerCase().endsWith('.h5');
+                    const clickAction = isH5File ? `selectFile('${item.path}')` : '';
+                    const rowStyle = isH5File ? 'cursor: pointer; background: #e8f5e9;' : 'cursor: default;';
+                    html += `<tr style="${rowStyle} border-bottom: 1px solid #eee;" ${clickAction ? `onclick="${clickAction}"` : ''}>`;
+                    html += `<td style="padding: 8px;">${isH5File ? '📄' : '📄'} ${item.name}</td>`;
+                    html += `<td style="padding: 8px;">File</td>`;
+                    html += `<td style="padding: 8px; text-align: right;">${formatFileSize(item.size)}</td>`;
+                    html += '</tr>';
+                }
+            });
+            
+            html += '</table>';
+            $('#browser_content').html(html);
+        }
+        
+        function selectFile(filePath) {
+            $('#file_path').val(filePath);
+            $('#file_browser').hide();
+            alert('File selected: ' + filePath);
+        }
+        
+        function browseUp() {
+            // Handled in displayDirectory function
+        }
+        
+        function formatFileSize(bytes) {
+            if (!bytes) return '-';
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+        }
+    </script>
+</body>
+</html>
