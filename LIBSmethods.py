@@ -4,6 +4,12 @@ from scipy.stats import pearsonr
 from scipy.special import wofz
 from scipy.optimize import curve_fit
 
+
+def calculate_snr(data):
+    #normalize the data to standard normal distribution
+    data_snr = (data - np.mean(data)) / np.std(data)
+    return data_snr
+
 def triangular_function(b1,a1,b2):
     left = np.linspace(0, 1, a1-b1)
     right = np.linspace(1, 0, b2-a1)

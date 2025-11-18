@@ -11,7 +11,7 @@ matplotlib.use('Agg')  # Non-interactive backend
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 import plotly.express as px
-from LIBSmethods import peak_intensity, voigt_fit, simple_sum, simple_voigt_fit
+from LIBSmethods import peak_intensity, voigt_fit, simple_sum, simple_voigt_fit, calculate_snr
 import os
 
 app = Flask(__name__)
@@ -71,6 +71,65 @@ def load_file():
             })
     except KeyError as e:
         return jsonify({'success': False, 'error': f'Invalid HDF5 structure: {str(e)}'}), 400
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+@app.route('/api/calculate_pca', methods=['POST'])
+def calculate_pca():
+    """Calculate PCA for given parameters"""
+    file_path = request.json['file_path']
+    if not os.path.exists(file_path):
+        return jsonify({'success': False, 'error': f'File not found: {file_path}'}), 404
+    if not os.path.isfile(file_path):
+        return jsonify({'success': False, 'error': f'Path is not a file: {file_path}'}), 400
+    try:
+        with h5py.File(file_path, "r") as file:
+            wavelength = file['measurements/Measurement_1/libs/calibration'][:]
+            data = file['/measurements/Measurement_1/libs/data'][:]
+            x_pos = file['measurements/Measurement_1/libs/metadata/X_pos'][:]
+            y_pos = file['measurements/Measurement_1/libs/metadata/Y_pos'][:]
+            x_len = file['measurements/Measurement_1/libs/metadata/x'][:]
+            y_len = file['measurements/Measurement_1/libs/metadata/y'][:]
+            x_step = file['measurements/Measurement_1/global_metadata/Width Spacing'][:]
+            y_step = file['measurements/Measurement_1/global_metadata/Height Spacing'][:]
+            
+            #normalize the data to standard normal distribution
+            data_normalized = np.apply_along_axis(calculate_snr, 1, data)
+            #calculate pca components to explain 95% of the variance
+            pca = PCA(n_components=0.95)
+            pca.fit(data_normalized)
+            pca_components = pca.n_components_
+            pca_explained_variance_ratio = pca.explained_variance_ratio_
+            pca_explained_variance = pca.explained_variance_
+            #calculate k-means clustering for the pca components
+            n_clusters = request.json['n_clusters'] #number of clusters to use for k-means clustering
+            kmeans = KMeans(n_clusters=n_clusters, random_state=42) #random state for reproducibility
+            kmeans.fit(pca.components_)
+            kmeans_labels = kmeans.labels_
+            return jsonify({
+                'success': True, 
+                'pca_components': pca_components,
+                'pca_explained_variance_ratio': pca_explained_variance_ratio.tolist(),
+                'pca_explained_variance': pca_explained_variance.tolist(),
+                'x_pos': x_pos.tolist(),
+                'y_pos': y_pos.tolist(),
+                'x_len': x_len.tolist(),
+                'y_len': y_len.tolist(),
+                'x_step': x_step.tolist(),
+                'y_step': y_step.tolist(),
+                'PC1': pca.components_[0].tolist(),
+                'PC2': pca.components_[1].tolist(),
+                'PC3': pca.components_[2].tolist()
+            })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/plot_pca_map', methods=['POST'])
+def plot_pca_map():
+    """Plot PCA for given parameters"""
+    pca_components = request.json['pca_components']
+    pca_explained_variance_ratio = request.json['pca_explained_variance_ratio']
+    pca_explained_variance = request.json['pca_explained_variance']
+    return jsonify({'success': True, 'pca_components': pca_components, 'pca_explained_variance_ratio': pca_explained_variance_ratio, 'pca_explained_variance': pca_explained_variance})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
