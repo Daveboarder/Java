@@ -114,6 +114,42 @@
         <div id="intensity_map" class="plot-container"></div>
     </div>
     
+    <div class="saved-lines" id="pca_section" style="display:none; margin-top: 20px;">
+        <h3>PCA Analysis:</h3>
+        <button onclick="calculatePCA()" style="padding: 5px 15px; background: #27ae60; color: white;">Calculate PCA</button>
+    </div>
+    
+    <div id="pca_loadings_section" style="display:none;">
+        <h2>PCA Loadings Plot</h2>
+        <p class="info-text">Principal Component loadings vs Wavelength</p>
+        <div id="pca_loadings_plot" class="plot-container"></div>
+    </div>
+    
+    <div id="pca_scores_section" style="display:none;">
+        <h2>PCA Scores Plot</h2>
+        <p class="info-text">Principal Component scores visualization</p>
+        <div id="pca_scores_plot" class="plot-container"></div>
+    </div>
+    
+    <div id="kmeans_scree_section" style="display:none;">
+        <h2>K-Means Scree Plot</h2>
+        <p class="info-text">Within-cluster sum of squares (inertia) vs Number of clusters</p>
+        <div id="kmeans_scree_plot" class="plot-container"></div>
+    </div>
+    
+    <div id="kmeans_map_controls" style="display:none; margin-top: 20px; padding: 15px; background: #f0f0f0; border-radius: 5px;">
+        <h3>K-Means Cluster Map:</h3>
+        <label>Number of Clusters:</label>
+        <input type="number" id="n_clusters_input" min="2" max="20" value="3" style="width: 80px; padding: 5px; margin-left: 10px;">
+        <button onclick="plotKMeansMap()" style="padding: 5px 15px; margin-left: 10px; background: #9b59b6; color: white;">Plot Cluster Map</button>
+    </div>
+    
+    <div id="kmeans_map_section" style="display:none;">
+        <h2>K-Means Cluster Map</h2>
+        <p class="info-text">Spatial distribution of clusters</p>
+        <div id="kmeans_map_plot" class="plot-container"></div>
+    </div>
+    
     <script>
         const SERVER_URL = 'http://localhost:5000';
         
@@ -132,7 +168,9 @@
                 data: JSON.stringify({file_path: filePath}),
                 success: function(data) {
                     if (data.success) {
+                        // Show controls
                         $('#controls').show();
+                        $('#pca_section').show();  // Add this line
                         console.log('File loaded successfully', data);
                         
                         spectrumData = data;
@@ -150,6 +188,7 @@
                             success: function(response) {
                                 if (response.success) {
                                     $('#spectrum_section').show();
+                                    $('#pca_section').show();  // Show PCA section when spectrum is shown
                                     const plotData = response.plot;
                                     Plotly.newPlot('spectrum_plot', plotData.data, plotData.layout, {responsive: true});
                                     
@@ -421,6 +460,395 @@
                 error: function(xhr, status, error) {
                     console.error('Plot failed:', error);
                     alert('Failed to generate ratio plot: ' + error);
+                }
+            });
+        }
+
+        // Store PCA data
+        let pcaData = null;
+        
+        function calculatePCA() {
+            const filePath = $('#file_path').val();
+            
+            if (!filePath || filePath.trim() === '') {
+                alert('Please load a file first.');
+                return;
+            }
+            
+            // Show loading indicator
+            const pcaSection = $('#pca_section');
+            pcaSection.html('<h3>PCA Analysis:</h3><p>Calculating PCA... Please wait.</p>');
+            
+            $.ajax({
+                url: SERVER_URL + '/api/calculate_pca',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    file_path: filePath
+                }),
+                success: function(data) {
+                    if (data.success) {
+                        pcaData = data;
+                        
+                        // Plot PCA loadings
+                        plotPCALoadings(data);
+                        
+                        // Plot PCA scores (PC1 vs PC2 and PC1 vs PC3)
+                        plotPCAScores(data);
+                        
+                        // Plot k-means scree plot
+                        plotKMeansScree(data);
+                        
+                        // Show k-means map controls
+                        $('#kmeans_map_controls').show();
+                        
+                        // Restore button
+                        pcaSection.html('<h3>PCA Analysis:</h3><button onclick="calculatePCA()" style="padding: 5px 15px; background: #27ae60; color: white;">Recalculate PCA</button>');
+                    } else {
+                        alert('Error calculating PCA: ' + data.error);
+                        pcaSection.html('<h3>PCA Analysis:</h3><button onclick="calculatePCA()" style="padding: 5px 15px; background: #27ae60; color: white;">Calculate PCA</button>');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('PCA calculation failed:', error);
+                    alert('Failed to calculate PCA: ' + error);
+                    pcaSection.html('<h3>PCA Analysis:</h3><button onclick="calculatePCA()" style="padding: 5px 15px; background: #27ae60; color: white;">Calculate PCA</button>');
+                }
+            });
+        }
+        
+        function plotPCALoadings(data) {
+            const wavelength = data.wavelength;
+            const PC1 = data.PC1;
+            const PC2 = data.PC2;
+            const PC3 = data.PC3;
+            
+            // Create Plotly figure
+            const trace1 = {
+                x: wavelength,
+                y: PC1,
+                mode: 'lines',
+                name: 'PC1',
+                line: {color: '#e74c3c', width: 2}
+            };
+            
+            const trace2 = {
+                x: wavelength,
+                y: PC2,
+                mode: 'lines',
+                name: 'PC2',
+                line: {color: '#3498db', width: 2}
+            };
+            
+            const trace3 = {
+                x: wavelength,
+                y: PC3,
+                mode: 'lines',
+                name: 'PC3',
+                line: {color: '#2ecc71', width: 2}
+            };
+            
+            const layout = {
+                title: 'PCA Loadings: PC1, PC2, and PC3',
+                xaxis: {
+                    title: 'Wavelength (nm)',
+                    showgrid: true
+                },
+                yaxis: {
+                    title: 'Loading Value',
+                    showgrid: true
+                },
+                hovermode: 'x unified',
+                template: 'plotly_white',
+                height: 500,
+                legend: {
+                    x: 0.02,
+                    y: 0.98,
+                    bgcolor: 'rgba(255, 255, 255, 0.8)'
+                }
+            };
+            
+            Plotly.newPlot('pca_loadings_plot', [trace1, trace2, trace3], layout, {responsive: true});
+            $('#pca_loadings_section').show();
+        }
+
+        function plotPCAScores(data) {
+            const PC1_scores = data.PC1_scores;
+            const PC2_scores = data.PC2_scores;
+            const PC3_scores = data.PC3_scores;
+            
+            // Get explained variance percentages
+            const var_PC1 = (data.explained_variance_PC1 * 100).toFixed(2);
+            const var_PC2 = (data.explained_variance_PC2 * 100).toFixed(2);
+            const var_PC3 = (data.explained_variance_PC3 * 100).toFixed(2);
+            
+            // Create subplot with PC1 vs PC2 and PC1 vs PC3
+            const trace1 = {
+                x: PC1_scores,
+                y: PC2_scores,
+                mode: 'markers',
+                name: 'PC1 vs PC2',
+                marker: {
+                    color: '#e74c3c',
+                    size: 5,
+                    opacity: 0.6
+                },
+                xaxis: 'x',
+                yaxis: 'y'
+            };
+            
+            const trace2 = {
+                x: PC1_scores,
+                y: PC3_scores,
+                mode: 'markers',
+                name: 'PC1 vs PC3',
+                marker: {
+                    color: '#3498db',
+                    size: 5,
+                    opacity: 0.6
+                },
+                xaxis: 'x2',
+                yaxis: 'y2'
+            };
+
+            const trace3 = {
+                x: PC2_scores,
+                y: PC3_scores,
+                mode: 'markers',
+                name: 'PC2 vs PC3',
+                marker: {
+                    color: '#2ecc71',
+                    size: 5,
+                    opacity: 0.6
+                },
+                xaxis: 'x3',
+                yaxis: 'y3'
+            };
+
+            const layout = {
+                title: 'PCA Scores: PC1 vs PC2, PC1 vs PC3 and PC2 vs PC3',
+                grid: {
+                    rows: 1,
+                    columns: 3,
+                    pattern: 'independent'
+                },
+                xaxis: {
+                    title: `PC1 (${var_PC1}% variance)`,
+                    showgrid: true,
+                    domain: [0.05, 0.35]
+                },
+                yaxis: {
+                    title: `PC2 (${var_PC2}% variance)`,
+                    showgrid: true
+                },
+                xaxis2: {
+                    title: `PC1 (${var_PC1}% variance)`,
+                    showgrid: true,
+                    domain: [0.35, 0.65]
+                },
+                yaxis2: {
+                    title: `PC3 (${var_PC3}% variance)`,
+                    showgrid: true
+                },
+                xaxis3: {
+                    title: `PC2 (${var_PC2}% variance)`,
+                    showgrid: true,
+                    domain: [0.65, 0.95]
+                },
+                yaxis3: {
+                    title: `PC3 (${var_PC3}% variance)`,
+                    showgrid: true
+                },
+                hovermode: 'closest',
+                template: 'plotly_white',
+                height: 500,
+                width: 1400,
+                showlegend: true,
+                legend: {
+                    x: 0.5,
+                    y: -0.15,
+                    xanchor: 'center',
+                    orientation: 'h'
+                }
+            };
+            
+            Plotly.newPlot('pca_scores_plot', [trace1, trace2, trace3], layout, {responsive: true});
+            $('#pca_scores_section').show();
+        }
+
+        function plotKMeansScree(data) {
+            const n_clusters = data.kmeans_n_clusters;
+            const inertias = data.kmeans_inertias;
+            
+            // Create scree plot
+            const trace = {
+                x: n_clusters,
+                y: inertias,
+                mode: 'lines+markers',
+                name: 'Inertia',
+                line: {
+                    color: '#e74c3c',
+                    width: 2
+                },
+                marker: {
+                    color: '#e74c3c',
+                    size: 8
+                }
+            };
+            
+            const layout = {
+                title: 'K-Means Scree Plot (Elbow Method)',
+                xaxis: {
+                    title: 'Number of Clusters',
+                    tickmode: 'linear',
+                    tick0: 1,
+                    dtick: 1,
+                    showgrid: true
+                },
+                yaxis: {
+                    title: 'Within-Cluster Sum of Squares (Inertia)',
+                    showgrid: true
+                },
+                hovermode: 'x unified',
+                template: 'plotly_white',
+                height: 500,
+                showlegend: false
+            };
+            
+            Plotly.newPlot('kmeans_scree_plot', [trace], layout, {responsive: true});
+            $('#kmeans_scree_section').show();
+        }
+
+        // Store k-means map data
+        let kmeansMapData = null;
+        
+        function plotKMeansMap() {
+            const filePath = $('#file_path').val();
+            const nClusters = parseInt($('#n_clusters_input').val());
+            
+            if (!filePath || filePath.trim() === '') {
+                alert('Please load a file first.');
+                return;
+            }
+            
+            // Check if PCA data is available and has required fields
+            if (!pcaData || !pcaData.success) {
+                alert('Please calculate PCA first before plotting k-means map.');
+                return;
+            }
+            
+            // Validate that PC scores exist in pcaData
+            if (!pcaData.PC1_scores || !pcaData.PC2_scores || !pcaData.PC3_scores) {
+                alert('PCA data is incomplete. Please recalculate PCA.');
+                console.error('Missing PC scores in pcaData:', pcaData);
+                return;
+            }
+            
+            if (isNaN(nClusters) || nClusters < 2 || nClusters > 20) {
+                alert('Please enter a valid number of clusters (2-20).');
+                return;
+            }
+            
+            // Show loading
+            const button = event.target;
+            const originalText = button.textContent;
+            button.textContent = 'Calculating...';
+            button.disabled = true;
+            
+            // Calculate k-means with specified number of clusters
+            $.ajax({
+                url: SERVER_URL + '/api/calculate_kmeans',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    PC1_scores: pcaData.PC1_scores,
+                    PC2_scores: pcaData.PC2_scores,
+                    PC3_scores: pcaData.PC3_scores,
+                    n_clusters: nClusters
+                }),
+                success: function(data) {
+                    if (data.success) {
+                        // Combine k-means labels with position data from pcaData
+                        const kmeansData = {
+                            kmeans_labels: data.kmeans_labels,
+                            x_pos: pcaData.x_pos,
+                            y_pos: pcaData.y_pos,
+                            x_len: pcaData.x_len,
+                            y_len: pcaData.y_len,
+                            x_step: pcaData.x_step,
+                            y_step: pcaData.y_step,
+                            n_clusters: nClusters
+                        };
+                        
+                        kmeansMapData = kmeansData;
+                        
+                        // Plot the k-means map
+                        plotKMeansMapVisualization(kmeansData);
+                        
+                        button.textContent = originalText;
+                        button.disabled = false;
+                    } else {
+                        alert('Error calculating k-means: ' + data.error);
+                        button.textContent = originalText;
+                        button.disabled = false;
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('K-means calculation failed:', error);
+                    console.error('Response:', xhr.responseText);
+                    alert('Failed to calculate k-means: ' + error);
+                    button.textContent = originalText;
+                    button.disabled = false;
+                }
+            });
+        }
+        
+        function plotKMeansMapVisualization(data) {
+            // Debug: log the data being sent
+            console.log('Plotting k-means map with data:', {
+                x_pos_length: data.x_pos?.length,
+                y_pos_length: data.y_pos?.length,
+                labels_length: data.kmeans_labels?.length,
+                x_len: data.x_len,
+                y_len: data.y_len,
+                x_step: data.x_step,
+                y_step: data.y_step
+            });
+            
+            // Use the existing plot_kmeans_map endpoint
+            $.ajax({
+                url: SERVER_URL + '/api/plot_kmeans_map',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    x_pos: data.x_pos,
+                    y_pos: data.y_pos,
+                    kmeans_labels: data.kmeans_labels,
+                    x_len: data.x_len,
+                    y_len: data.y_len,
+                    x_step: data.x_step,
+                    y_step: data.y_step
+                }),
+                success: function(response) {
+                    console.log('Plot response:', response);
+                    if (response.success) {
+                        // Use the Plotly plot from backend
+                        const plotData = response.plot;
+                        console.log('Plot data structure:', {
+                            has_data: !!plotData.data,
+                            data_length: plotData.data?.length,
+                            has_layout: !!plotData.layout
+                        });
+                        Plotly.newPlot('kmeans_map_plot', plotData.data, plotData.layout, {responsive: true});
+                        $('#kmeans_map_section').show();
+                    } else {
+                        alert('Failed to generate k-means map: ' + (response.error || 'Unknown error'));
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Plot failed:', error);
+                    console.error('Response:', xhr.responseText);
+                    alert('Failed to generate k-means map: ' + error);
                 }
             });
         }

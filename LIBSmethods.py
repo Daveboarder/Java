@@ -5,10 +5,10 @@ from scipy.special import wofz
 from scipy.optimize import curve_fit
 
 
-def calculate_snr(data):
-    #normalize the data to standard normal distribution
-    data_snr = (data - np.mean(data)) / np.std(data)
-    return data_snr
+def snv(data):
+    #normalize the data to standard normal distribution with zero mean and unit variance
+    data_snv = (data - np.mean(data, axis=1, keepdims=True)) / np.std(data, axis=1, keepdims=True)
+    return data_snv
 
 def triangular_function(b1,a1,b2):
     left = np.linspace(0, 1, a1-b1)
