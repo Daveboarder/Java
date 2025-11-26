@@ -76,8 +76,8 @@ def voigt_fit(data, wavelengths, b1_w, b2_w):
     # Find the indices of the wavelengths
     b1 = np.argmin(np.abs(wavelengths - b1_w))
     b2 = np.argmin(np.abs(wavelengths - b2_w))
-    gamma = -2
-    sigma = 0.6
+    gamma = 0.1
+    sigma = 0.006
     x = wavelengths[b1:b2]
     data_slice = data[:,b1:b2]
 
@@ -88,20 +88,38 @@ def voigt_fit(data, wavelengths, b1_w, b2_w):
     def voigt_fit_wrapper(vector, x, x0, gamma, sigma):
         try:
             popt, _ = curve_fit(voigt, x, vector, p0=[x0, np.max(vector), gamma, sigma])
-            real_fit=voigt(x, *popt)
+            # Calculate fitted curve
+            real_fit = voigt(x, *popt)
+            
+            # 6. Check RMSE and normalized RMSE (fit quality)
             RMSE = np.sqrt(np.mean((vector - real_fit)**2))
-            print(f"RMSE: {RMSE}")
-            if RMSE > 15:
-                signal_area = 0
-                return signal_area
+            
+            # Calculate normalized RMSE (NRMSE) as percentage of data range
+            data_range = np.max(vector) - np.min(vector)
+            if data_range > 0:
+                NRMSE = (RMSE / data_range) * 100  # Percentage
             else:
+                NRMSE = float('inf')  # No variation in data
+            
+            # Calculate R² (coefficient of determination)
+            ss_res = np.sum((vector - real_fit)**2)
+            ss_tot = np.sum((vector - np.mean(vector))**2)
+            if ss_tot > 0:
+                r_squared = 1 - (ss_res / ss_tot)
+            else:
+                r_squared = -float('inf')
+            
+            print(f"R²: {r_squared:.4f}")
+            
+            if r_squared < 0.85:
+                return 0
+            else:# Calculate signal area and return R²
                 signal_area = np.trapz(real_fit, x)
                 return signal_area
-        except RuntimeError:
-            signal_area = 0
+        except (RuntimeError, ValueError, TypeError):
             return 0
     signal_area = np.apply_along_axis(voigt_fit_wrapper, 1, data_slice, x, x0, gamma, sigma)
-    return signal_area  # Return the signal area for each row
+    return signal_area
 
 def simple_voigt_fit(data, wavelengths, b1_w, b2_w):
     # Find the indices of the wavelengths
