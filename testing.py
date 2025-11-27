@@ -16,8 +16,9 @@ def print_hdf5_tree(name, obj, prefix="", is_last=True):
             extension = "    " if is_last else "│   "
             print_hdf5_tree(f"{name}/{key}", value, prefix + extension, is_last_item)
     
-
-with h5py.File('/home/LIBS/prochazka/data/Running_projects/25_0069_3D_chemical_imaging/Measurements/mandible 266nm/mandible_266_v1.h5', 'r') as file:
+#file_path='/home/LIBS/prochazka/data/Running_projects/24_0057_LIBSdata_processing/Methods/Mapping/Java/output_c1.h5' 
+file_path = '/home/LIBS/prochazka/data/Running_projects/25_0069_3D_chemical_imaging/Measurements/mandible 266nm/mandible_266_v1.h5'
+with h5py.File(file_path, 'r') as file:
     wavelength = file['measurements/Measurement_1/libs/calibration'][:]
     data = file['/measurements/Measurement_1/libs/data'][:]
     x_pos = file['measurements/Measurement_1/libs/metadata/X_pos'][:]
@@ -33,7 +34,7 @@ with h5py.File('/home/LIBS/prochazka/data/Running_projects/25_0069_3D_chemical_i
     b1 = np.argmin(np.abs(wavelength - b1_w))
     b2 = np.argmin(np.abs(wavelength - b2_w))
     gamma = 0.1
-    sigma = 0.006
+    sigma = 0.1
     x = wavelength[b1:b2]
     data_slice = data[:,b1:b2]
 
@@ -50,8 +51,10 @@ with h5py.File('/home/LIBS/prochazka/data/Running_projects/25_0069_3D_chemical_i
     denom = np.dot(basis, basis)
     amplitudes = data_slice @ basis / denom
     popt, pcov = curve_fit(voigt, x, max_data, p0=[x0, np.max(max_data), gamma, sigma])
+    print(f"popt: {popt}")
     try:
         test_popt, _ = curve_fit(voigt, x, data_slice[selected_spectrum,:], p0=[x0, np.max(data_slice[selected_spectrum,:]), gamma, sigma])
+        print(f"test_popt: {test_popt}")
     except RuntimeError:
         print("RuntimeError: Failed to fit voigt function")
         test_popt = [x0, np.max(data_slice[selected_spectrum,:]), gamma, sigma]
