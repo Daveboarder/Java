@@ -13,7 +13,7 @@
 
         body {
             font-family: 'Arial', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #aff7c1 0%, #fcfcfc 100%);
             padding: 20px;
             min-height: 100vh;
         }
@@ -96,12 +96,12 @@
         }
 
         /* Element categories colors */
-        .alkali-metal { background-color: #ff6b6b; color: white; }
-        .alkaline-earth { background-color: #feca57; color: #333; }
-        .transition-metal { background-color: #48dbfb; color: #333; }
+        .alkali-metal { background-color: #b0e485; color: rgb(44, 41, 41); }
+        .alkaline-earth { background-color: #20b960; color: #333; }
+        .transition-metal { background-color: #268b4d; color: #333; }
         .post-transition { background-color: #a29bfe; color: white; }
         .metalloid { background-color: #00d2d3; color: white; }
-        .nonmetal { background-color: #1dd1a1; color: white; }
+        .nonmetal { background-color: #43c487; color: white; }
         .halogen { background-color: #10ac84; color: white; }
         .noble-gas { background-color: #5f27cd; color: white; }
         .lanthanide { background-color: #ff9ff3; color: #333; }
@@ -149,36 +149,69 @@
             background: linear-gradient(135deg, #e7e9f3 0%, #373738 100%);
             border-radius: 10px;
             padding: 20px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
             color: white;
             box-shadow: 0 5px 20px rgba(0,0,0,0.4);
             z-index: 10;
-            text-align: center;
             pointer-events: none;
             transition: background 0.3s ease, color 0.3s ease;
         }
 
-        .info-box h2 {
-            color: inherit;
-            margin-bottom: 7px;
-            font-size: 0.9em;
-        }
-
-        .info-box p {
-            color: inherit;
-            line-height: 1;
-            margin: 5px 0;
-            font-size: 0.9em;
+        .info-box-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 10px;
         }
 
         .info-box .element-symbol {
-            font-size: 1.4em;
+            font-size: 3em;
             font-weight: bold;
-            margin: 8px 0;
             color: inherit;
+            line-height: 1;
+        }
+
+        .info-box .atomic-number-top {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            font-size: 0.8em;
+            font-weight: bold;
+            color: inherit;
+            opacity: 0.8;
+        }
+
+        .info-box .atomic-mass-top {
+            font-size: 0.7em;
+            font-weight: normal;
+            margin-top: 3px;
+        }
+
+        .info-box .element-name {
+            color: inherit;
+            font-size: 1.1em;
+            font-weight: bold;
+            margin: 10px 0 15px 0;
+            text-align: left;
+        }
+
+        .info-box .spectral-lines {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            text-align: left;
+        }
+
+        .info-box .spectral-line {
+            display: flex;
+            justify-content: space-between;
+            color: inherit;
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+
+        .info-box .spectral-line-energy {
+            opacity: 0.8;
+            font-size: 0.85em;
         }
 
         @media (max-width: 1200px) {
@@ -263,140 +296,140 @@
         // Periodic table data
         const elements = [
             // Period 1
-            {num: 1, symbol: 'H', name: 'Hydrogen', mass: '1.008', category: 'nonmetal', row: 1, col: 1, spectralLines: [656.3, 486.1, 434.0]},
-            {num: 2, symbol: 'He', name: 'Helium', mass: '4.003', category: 'noble-gas', row: 1, col: 18, spectralLines: [587.6, 447.1, 388.9]},
+            {num: 1, symbol: 'H', name: 'Hydrogen', mass: '1.008', category: 'nonmetal', row: 1, col: 1, spectralLines: [{wavelength: 656.3, upperLevelEnergy: 12.1}, {wavelength: 486.1, upperLevelEnergy: 12.7}, {wavelength: 434.0, upperLevelEnergy: 13.1}]},
+            {num: 2, symbol: 'He', name: 'Helium', mass: '4.003', category: 'noble-gas', row: 1, col: 18, spectralLines: [{wavelength: 587.6, upperLevelEnergy: 23.0}, {wavelength: 447.1, upperLevelEnergy: 23.7}, {wavelength: 388.9, upperLevelEnergy: 24.2}]},
             
             // Period 2
-            {num: 3, symbol: 'Li', name: 'Lithium', mass: '6.941', category: 'alkali-metal', row: 2, col: 1, spectralLines: [670.8, 610.4, 460.3]},
-            {num: 4, symbol: 'Be', name: 'Beryllium', mass: '9.012', category: 'alkaline-earth', row: 2, col: 2, spectralLines: [234.9, 313.0, 265.0]},
-            {num: 5, symbol: 'B', name: 'Boron', mass: '10.81', category: 'metalloid', row: 2, col: 13, spectralLines: [249.7, 249.8, 208.9]},
-            {num: 6, symbol: 'C', name: 'Carbon', mass: '12.01', category: 'nonmetal', row: 2, col: 14, spectralLines: [247.9, 193.1, 165.7]},
-            {num: 7, symbol: 'N', name: 'Nitrogen', mass: '14.01', category: 'nonmetal', row: 2, col: 15, spectralLines: [174.3, 149.3, 120.0]},
-            {num: 8, symbol: 'O', name: 'Oxygen', mass: '16.00', category: 'nonmetal', row: 2, col: 16, spectralLines: [777.2, 844.6, 926.3]},
-            {num: 9, symbol: 'F', name: 'Fluorine', mass: '19.00', category: 'halogen', row: 2, col: 17, spectralLines: [685.6, 690.2, 623.9]},
-            {num: 10, symbol: 'Ne', name: 'Neon', mass: '20.18', category: 'noble-gas', row: 2, col: 18, spectralLines: [585.2, 540.1, 640.2]},
+            {num: 3, symbol: 'Li', name: 'Lithium', mass: '6.941', category: 'alkali-metal', row: 2, col: 1, spectralLines: [{wavelength: 670.8, upperLevelEnergy: 1.85}, {wavelength: 610.4, upperLevelEnergy: 2.03}, {wavelength: 460.3, upperLevelEnergy: 2.69}]},
+            {num: 4, symbol: 'Be', name: 'Beryllium', mass: '9.012', category: 'alkaline-earth', row: 2, col: 2, spectralLines: [{wavelength: 234.9, upperLevelEnergy: 5.28}, {wavelength: 313.0, upperLevelEnergy: 3.96}, {wavelength: 265.0, upperLevelEnergy: 4.68}]},
+            {num: 5, symbol: 'B', name: 'Boron', mass: '10.81', category: 'metalloid', row: 2, col: 13, spectralLines: [{wavelength: 249.7, upperLevelEnergy: 4.96}, {wavelength: 249.8, upperLevelEnergy: 4.96}, {wavelength: 208.9, upperLevelEnergy: 5.93}]},
+            {num: 6, symbol: 'C', name: 'Carbon', mass: '12.01', category: 'nonmetal', row: 2, col: 14, spectralLines: [{wavelength: 247.9, upperLevelEnergy: 5.00}, {wavelength: 193.1, upperLevelEnergy: 6.42}, {wavelength: 165.7, upperLevelEnergy: 7.48}]},
+            {num: 7, symbol: 'N', name: 'Nitrogen', mass: '14.01', category: 'nonmetal', row: 2, col: 15, spectralLines: [{wavelength: 174.3, upperLevelEnergy: 7.11}, {wavelength: 149.3, upperLevelEnergy: 8.30}, {wavelength: 120.0, upperLevelEnergy: 10.33}]},
+            {num: 8, symbol: 'O', name: 'Oxygen', mass: '16.00', category: 'nonmetal', row: 2, col: 16, spectralLines: [{wavelength: 777.2, upperLevelEnergy: 10.7}, {wavelength: 844.6, upperLevelEnergy: 10.9}, {wavelength: 926.3, upperLevelEnergy: 11.0}]},
+            {num: 9, symbol: 'F', name: 'Fluorine', mass: '19.00', category: 'halogen', row: 2, col: 17, spectralLines: [{wavelength: 685.6, upperLevelEnergy: 18.1}, {wavelength: 690.2, upperLevelEnergy: 18.0}, {wavelength: 623.9, upperLevelEnergy: 19.9}]},
+            {num: 10, symbol: 'Ne', name: 'Neon', mass: '20.18', category: 'noble-gas', row: 2, col: 18, spectralLines: [{wavelength: 585.2, upperLevelEnergy: 18.6}, {wavelength: 540.1, upperLevelEnergy: 19.7}, {wavelength: 640.2, upperLevelEnergy: 16.7}]},
             
             // Period 3
-            {num: 11, symbol: 'Na', name: 'Sodium', mass: '22.99', category: 'alkali-metal', row: 3, col: 1, spectralLines: [589.0, 589.6, 330.2]},
-            {num: 12, symbol: 'Mg', name: 'Magnesium', mass: '24.31', category: 'alkaline-earth', row: 3, col: 2, spectralLines: [285.2, 279.6, 280.3]},
-            {num: 13, symbol: 'Al', name: 'Aluminum', mass: '26.98', category: 'post-transition', row: 3, col: 13, spectralLines: [396.2, 309.3, 394.4]},
-            {num: 14, symbol: 'Si', name: 'Silicon', mass: '28.09', category: 'metalloid', row: 3, col: 14, spectralLines: [251.6, 288.2, 390.6]},
-            {num: 15, symbol: 'P', name: 'Phosphorus', mass: '30.97', category: 'nonmetal', row: 3, col: 15, spectralLines: [213.6, 214.9, 253.6]},
-            {num: 16, symbol: 'S', name: 'Sulfur', mass: '32.07', category: 'nonmetal', row: 3, col: 16, spectralLines: [180.7, 182.0, 182.6]},
-            {num: 17, symbol: 'Cl', name: 'Chlorine', mass: '35.45', category: 'halogen', row: 3, col: 17, spectralLines: [134.7, 725.7, 754.7]},
-            {num: 18, symbol: 'Ar', name: 'Argon', mass: '39.95', category: 'noble-gas', row: 3, col: 18, spectralLines: [750.4, 811.5, 842.5]},
+            {num: 11, symbol: 'Na', name: 'Sodium', mass: '22.99', category: 'alkali-metal', row: 3, col: 1, spectralLines: [{wavelength: 589.0, upperLevelEnergy: 2.10}, {wavelength: 589.6, upperLevelEnergy: 2.10}, {wavelength: 330.2, upperLevelEnergy: 3.75}]},
+            {num: 12, symbol: 'Mg', name: 'Magnesium', mass: '24.31', category: 'alkaline-earth', row: 3, col: 2, spectralLines: [{wavelength: 285.2, upperLevelEnergy: 4.35}, {wavelength: 279.6, upperLevelEnergy: 4.43}, {wavelength: 280.3, upperLevelEnergy: 4.42}]},
+            {num: 13, symbol: 'Al', name: 'Aluminum', mass: '26.98', category: 'post-transition', row: 3, col: 13, spectralLines: [{wavelength: 396.2, upperLevelEnergy: 3.14}, {wavelength: 309.3, upperLevelEnergy: 4.01}, {wavelength: 394.4, upperLevelEnergy: 3.14}]},
+            {num: 14, symbol: 'Si', name: 'Silicon', mass: '28.09', category: 'metalloid', row: 3, col: 14, spectralLines: [{wavelength: 251.6, upperLevelEnergy: 4.93}, {wavelength: 288.2, upperLevelEnergy: 4.30}, {wavelength: 390.6, upperLevelEnergy: 3.17}]},
+            {num: 15, symbol: 'P', name: 'Phosphorus', mass: '30.97', category: 'nonmetal', row: 3, col: 15, spectralLines: [{wavelength: 213.6, upperLevelEnergy: 5.80}, {wavelength: 214.9, upperLevelEnergy: 5.77}, {wavelength: 253.6, upperLevelEnergy: 4.89}]},
+            {num: 16, symbol: 'S', name: 'Sulfur', mass: '32.07', category: 'nonmetal', row: 3, col: 16, spectralLines: [{wavelength: 180.7, upperLevelEnergy: 6.86}, {wavelength: 182.0, upperLevelEnergy: 6.81}, {wavelength: 182.6, upperLevelEnergy: 6.79}]},
+            {num: 17, symbol: 'Cl', name: 'Chlorine', mass: '35.45', category: 'halogen', row: 3, col: 17, spectralLines: [{wavelength: 134.7, upperLevelEnergy: 9.20}, {wavelength: 725.7, upperLevelEnergy: 12.7}, {wavelength: 754.7, upperLevelEnergy: 12.6}]},
+            {num: 18, symbol: 'Ar', name: 'Argon', mass: '39.95', category: 'noble-gas', row: 3, col: 18, spectralLines: [{wavelength: 750.4, upperLevelEnergy: 13.5}, {wavelength: 811.5, upperLevelEnergy: 13.5}, {wavelength: 842.5, upperLevelEnergy: 13.5}]},
             
             // Period 4
-            {num: 19, symbol: 'K', name: 'Potassium', mass: '39.10', category: 'alkali-metal', row: 4, col: 1, spectralLines: [766.5, 769.9, 404.4]},
-            {num: 20, symbol: 'Ca', name: 'Calcium', mass: '40.08', category: 'alkaline-earth', row: 4, col: 2, spectralLines: [422.7, 393.4, 396.8]},
-            {num: 21, symbol: 'Sc', name: 'Scandium', mass: '44.96', category: 'transition-metal', row: 4, col: 3, spectralLines: [361.4, 363.1, 364.3]},
-            {num: 22, symbol: 'Ti', name: 'Titanium', mass: '47.87', category: 'transition-metal', row: 4, col: 4, spectralLines: [365.3, 336.1, 337.3]},
-            {num: 23, symbol: 'V', name: 'Vanadium', mass: '50.94', category: 'transition-metal', row: 4, col: 5, spectralLines: [437.9, 440.0, 411.2]},
-            {num: 24, symbol: 'Cr', name: 'Chromium', mass: '52.00', category: 'transition-metal', row: 4, col: 6, spectralLines: [425.4, 427.5, 428.9]},
-            {num: 25, symbol: 'Mn', name: 'Manganese', mass: '54.94', category: 'transition-metal', row: 4, col: 7, spectralLines: [403.1, 403.3, 403.4]},
-            {num: 26, symbol: 'Fe', name: 'Iron', mass: '55.85', category: 'transition-metal', row: 4, col: 8, spectralLines: [248.3, 259.9, 261.2]},
-            {num: 27, symbol: 'Co', name: 'Cobalt', mass: '58.93', category: 'transition-metal', row: 4, col: 9, spectralLines: [345.4, 346.6, 347.4]},
-            {num: 28, symbol: 'Ni', name: 'Nickel', mass: '58.69', category: 'transition-metal', row: 4, col: 10, spectralLines: [341.5, 346.2, 352.5]},
-            {num: 29, symbol: 'Cu', name: 'Copper', mass: '63.55', category: 'transition-metal', row: 4, col: 11, spectralLines: [324.8, 327.4, 510.6]},
-            {num: 30, symbol: 'Zn', name: 'Zinc', mass: '65.38', category: 'transition-metal', row: 4, col: 12, spectralLines: [213.9, 307.6, 330.3]},
-            {num: 31, symbol: 'Ga', name: 'Gallium', mass: '69.72', category: 'post-transition', row: 4, col: 13, spectralLines: [417.2, 403.3, 294.4]},
-            {num: 32, symbol: 'Ge', name: 'Germanium', mass: '72.63', category: 'metalloid', row: 4, col: 14, spectralLines: [265.1, 275.5, 303.9]},
-            {num: 33, symbol: 'As', name: 'Arsenic', mass: '74.92', category: 'metalloid', row: 4, col: 15, spectralLines: [193.7, 197.2, 228.8]},
-            {num: 34, symbol: 'Se', name: 'Selenium', mass: '78.97', category: 'nonmetal', row: 4, col: 16, spectralLines: [196.1, 203.9, 206.3]},
-            {num: 35, symbol: 'Br', name: 'Bromine', mass: '79.90', category: 'halogen', row: 4, col: 17, spectralLines: [154.1, 157.5, 163.3]},
-            {num: 36, symbol: 'Kr', name: 'Krypton', mass: '83.80', category: 'noble-gas', row: 4, col: 18, spectralLines: [760.2, 811.3, 819.0]},
+            {num: 19, symbol: 'K', name: 'Potassium', mass: '39.10', category: 'alkali-metal', row: 4, col: 1, spectralLines: [{wavelength: 766.5, upperLevelEnergy: 1.61}, {wavelength: 769.9, upperLevelEnergy: 1.61}, {wavelength: 404.4, upperLevelEnergy: 3.06}]},
+            {num: 20, symbol: 'Ca', name: 'Calcium', mass: '40.08', category: 'alkaline-earth', row: 4, col: 2, spectralLines: [{wavelength: 422.7, upperLevelEnergy: 2.93}, {wavelength: 393.4, upperLevelEnergy: 3.15}, {wavelength: 396.8, upperLevelEnergy: 3.12}]},
+            {num: 21, symbol: 'Sc', name: 'Scandium', mass: '44.96', category: 'transition-metal', row: 4, col: 3, spectralLines: [{wavelength: 361.4, upperLevelEnergy: 3.43}, {wavelength: 363.1, upperLevelEnergy: 3.41}, {wavelength: 364.3, upperLevelEnergy: 3.40}]},
+            {num: 22, symbol: 'Ti', name: 'Titanium', mass: '47.87', category: 'transition-metal', row: 4, col: 4, spectralLines: [{wavelength: 365.3, upperLevelEnergy: 3.39}, {wavelength: 336.1, upperLevelEnergy: 3.69}, {wavelength: 337.3, upperLevelEnergy: 3.68}]},
+            {num: 23, symbol: 'V', name: 'Vanadium', mass: '50.94', category: 'transition-metal', row: 4, col: 5, spectralLines: [{wavelength: 437.9, upperLevelEnergy: 2.83}, {wavelength: 440.0, upperLevelEnergy: 2.82}, {wavelength: 411.2, upperLevelEnergy: 3.01}]},
+            {num: 24, symbol: 'Cr', name: 'Chromium', mass: '52.00', category: 'transition-metal', row: 4, col: 6, spectralLines: [{wavelength: 425.4, upperLevelEnergy: 2.91}, {wavelength: 427.5, upperLevelEnergy: 2.90}, {wavelength: 428.9, upperLevelEnergy: 2.89}]},
+            {num: 25, symbol: 'Mn', name: 'Manganese', mass: '54.94', category: 'transition-metal', row: 4, col: 7, spectralLines: [{wavelength: 403.1, upperLevelEnergy: 3.08}, {wavelength: 403.3, upperLevelEnergy: 3.08}, {wavelength: 403.4, upperLevelEnergy: 3.07}]},
+            {num: 26, symbol: 'Fe', name: 'Iron', mass: '55.85', category: 'transition-metal', row: 4, col: 8, spectralLines: [{wavelength: 248.3, upperLevelEnergy: 4.99}, {wavelength: 259.9, upperLevelEnergy: 4.77}, {wavelength: 261.2, upperLevelEnergy: 4.75}]},
+            {num: 27, symbol: 'Co', name: 'Cobalt', mass: '58.93', category: 'transition-metal', row: 4, col: 9, spectralLines: [{wavelength: 345.4, upperLevelEnergy: 3.59}, {wavelength: 346.6, upperLevelEnergy: 3.58}, {wavelength: 347.4, upperLevelEnergy: 3.57}]},
+            {num: 28, symbol: 'Ni', name: 'Nickel', mass: '58.69', category: 'transition-metal', row: 4, col: 10, spectralLines: [{wavelength: 341.5, upperLevelEnergy: 3.63}, {wavelength: 346.2, upperLevelEnergy: 3.58}, {wavelength: 352.5, upperLevelEnergy: 3.52}]},
+            {num: 29, symbol: 'Cu', name: 'Copper', mass: '63.55', category: 'transition-metal', row: 4, col: 11, spectralLines: [{wavelength: 324.8, upperLevelEnergy: 3.82}, {wavelength: 327.4, upperLevelEnergy: 3.79}, {wavelength: 510.6, upperLevelEnergy: 2.43}]},
+            {num: 30, symbol: 'Zn', name: 'Zinc', mass: '65.38', category: 'transition-metal', row: 4, col: 12, spectralLines: [{wavelength: 213.9, upperLevelEnergy: 5.80}, {wavelength: 307.6, upperLevelEnergy: 4.03}, {wavelength: 330.3, upperLevelEnergy: 3.75}]},
+            {num: 31, symbol: 'Ga', name: 'Gallium', mass: '69.72', category: 'post-transition', row: 4, col: 13, spectralLines: [{wavelength: 417.2, upperLevelEnergy: 2.97}, {wavelength: 403.3, upperLevelEnergy: 3.07}, {wavelength: 294.4, upperLevelEnergy: 4.21}]},
+            {num: 32, symbol: 'Ge', name: 'Germanium', mass: '72.63', category: 'metalloid', row: 4, col: 14, spectralLines: [{wavelength: 265.1, upperLevelEnergy: 4.68}, {wavelength: 275.5, upperLevelEnergy: 4.50}, {wavelength: 303.9, upperLevelEnergy: 4.08}]},
+            {num: 33, symbol: 'As', name: 'Arsenic', mass: '74.92', category: 'metalloid', row: 4, col: 15, spectralLines: [{wavelength: 193.7, upperLevelEnergy: 6.40}, {wavelength: 197.2, upperLevelEnergy: 6.29}, {wavelength: 228.8, upperLevelEnergy: 5.42}]},
+            {num: 34, symbol: 'Se', name: 'Selenium', mass: '78.97', category: 'nonmetal', row: 4, col: 16, spectralLines: [{wavelength: 196.1, upperLevelEnergy: 6.32}, {wavelength: 203.9, upperLevelEnergy: 6.08}, {wavelength: 206.3, upperLevelEnergy: 6.01}]},
+            {num: 35, symbol: 'Br', name: 'Bromine', mass: '79.90', category: 'halogen', row: 4, col: 17, spectralLines: [{wavelength: 154.1, upperLevelEnergy: 8.05}, {wavelength: 157.5, upperLevelEnergy: 7.87}, {wavelength: 163.3, upperLevelEnergy: 7.59}]},
+            {num: 36, symbol: 'Kr', name: 'Krypton', mass: '83.80', category: 'noble-gas', row: 4, col: 18, spectralLines: [{wavelength: 760.2, upperLevelEnergy: 13.4}, {wavelength: 811.3, upperLevelEnergy: 13.4}, {wavelength: 819.0, upperLevelEnergy: 13.4}]},
             
             // Period 5
-            {num: 37, symbol: 'Rb', name: 'Rubidium', mass: '85.47', category: 'alkali-metal', row: 5, col: 1, spectralLines: [780.0, 794.8, 420.2]},
-            {num: 38, symbol: 'Sr', name: 'Strontium', mass: '87.62', category: 'alkaline-earth', row: 5, col: 2, spectralLines: [460.7, 407.8, 421.6]},
-            {num: 39, symbol: 'Y', name: 'Yttrium', mass: '88.91', category: 'transition-metal', row: 5, col: 3, spectralLines: [371.0, 377.4, 410.2]},
-            {num: 40, symbol: 'Zr', name: 'Zirconium', mass: '91.22', category: 'transition-metal', row: 5, col: 4, spectralLines: [360.1, 343.8, 349.6]},
-            {num: 41, symbol: 'Nb', name: 'Niobium', mass: '92.91', category: 'transition-metal', row: 5, col: 5, spectralLines: [334.4, 358.0, 410.9]},
-            {num: 42, symbol: 'Mo', name: 'Molybdenum', mass: '95.95', category: 'transition-metal', row: 5, col: 6, spectralLines: [313.3, 317.0, 319.4]},
-            {num: 43, symbol: 'Tc', name: 'Technetium', mass: '(98)', category: 'transition-metal', row: 5, col: 7, spectralLines: [429.7, 426.2, 423.8]},
-            {num: 44, symbol: 'Ru', name: 'Ruthenium', mass: '101.1', category: 'transition-metal', row: 5, col: 8, spectralLines: [349.9, 372.8, 379.9]},
-            {num: 45, symbol: 'Rh', name: 'Rhodium', mass: '102.9', category: 'transition-metal', row: 5, col: 9, spectralLines: [343.5, 369.2, 370.1]},
-            {num: 46, symbol: 'Pd', name: 'Palladium', mass: '106.4', category: 'transition-metal', row: 5, col: 10, spectralLines: [340.5, 342.1, 363.5]},
-            {num: 47, symbol: 'Ag', name: 'Silver', mass: '107.9', category: 'transition-metal', row: 5, col: 11, spectralLines: [328.1, 338.3, 520.9]},
-            {num: 48, symbol: 'Cd', name: 'Cadmium', mass: '112.4', category: 'transition-metal', row: 5, col: 12, spectralLines: [228.8, 326.1, 340.4]},
-            {num: 49, symbol: 'In', name: 'Indium', mass: '114.8', category: 'post-transition', row: 5, col: 13, spectralLines: [451.1, 410.2, 325.6]},
-            {num: 50, symbol: 'Sn', name: 'Tin', mass: '118.7', category: 'post-transition', row: 5, col: 14, spectralLines: [286.3, 283.9, 303.4]},
-            {num: 51, symbol: 'Sb', name: 'Antimony', mass: '121.8', category: 'metalloid', row: 5, col: 15, spectralLines: [217.6, 231.1, 206.8]},
-            {num: 52, symbol: 'Te', name: 'Tellurium', mass: '127.6', category: 'metalloid', row: 5, col: 16, spectralLines: [214.3, 225.9, 238.6]},
-            {num: 53, symbol: 'I', name: 'Iodine', mass: '126.9', category: 'halogen', row: 5, col: 17, spectralLines: [183.0, 206.2, 187.6]},
-            {num: 54, symbol: 'Xe', name: 'Xenon', mass: '131.3', category: 'noble-gas', row: 5, col: 18, spectralLines: [823.2, 828.0, 881.9]},
+            {num: 37, symbol: 'Rb', name: 'Rubidium', mass: '85.47', category: 'alkali-metal', row: 5, col: 1, spectralLines: [{wavelength: 780.0, upperLevelEnergy: 1.59}, {wavelength: 794.8, upperLevelEnergy: 1.56}, {wavelength: 420.2, upperLevelEnergy: 2.95}]},
+            {num: 38, symbol: 'Sr', name: 'Strontium', mass: '87.62', category: 'alkaline-earth', row: 5, col: 2, spectralLines: [{wavelength: 460.7, upperLevelEnergy: 2.69}, {wavelength: 407.8, upperLevelEnergy: 3.04}, {wavelength: 421.6, upperLevelEnergy: 2.94}]},
+            {num: 39, symbol: 'Y', name: 'Yttrium', mass: '88.91', category: 'transition-metal', row: 5, col: 3, spectralLines: [{wavelength: 371.0, upperLevelEnergy: 3.34}, {wavelength: 377.4, upperLevelEnergy: 3.29}, {wavelength: 410.2, upperLevelEnergy: 3.02}]},
+            {num: 40, symbol: 'Zr', name: 'Zirconium', mass: '91.22', category: 'transition-metal', row: 5, col: 4, spectralLines: [{wavelength: 360.1, upperLevelEnergy: 3.44}, {wavelength: 343.8, upperLevelEnergy: 3.61}, {wavelength: 349.6, upperLevelEnergy: 3.55}]},
+            {num: 41, symbol: 'Nb', name: 'Niobium', mass: '92.91', category: 'transition-metal', row: 5, col: 5, spectralLines: [{wavelength: 334.4, upperLevelEnergy: 3.71}, {wavelength: 358.0, upperLevelEnergy: 3.46}, {wavelength: 410.9, upperLevelEnergy: 3.02}]},
+            {num: 42, symbol: 'Mo', name: 'Molybdenum', mass: '95.95', category: 'transition-metal', row: 5, col: 6, spectralLines: [{wavelength: 313.3, upperLevelEnergy: 3.96}, {wavelength: 317.0, upperLevelEnergy: 3.91}, {wavelength: 319.4, upperLevelEnergy: 3.88}]},
+            {num: 43, symbol: 'Tc', name: 'Technetium', mass: '(98)', category: 'transition-metal', row: 5, col: 7, spectralLines: [{wavelength: 429.7, upperLevelEnergy: 2.89}, {wavelength: 426.2, upperLevelEnergy: 2.91}, {wavelength: 423.8, upperLevelEnergy: 2.93}]},
+            {num: 44, symbol: 'Ru', name: 'Ruthenium', mass: '101.1', category: 'transition-metal', row: 5, col: 8, spectralLines: [{wavelength: 349.9, upperLevelEnergy: 3.54}, {wavelength: 372.8, upperLevelEnergy: 3.33}, {wavelength: 379.9, upperLevelEnergy: 3.26}]},
+            {num: 45, symbol: 'Rh', name: 'Rhodium', mass: '102.9', category: 'transition-metal', row: 5, col: 9, spectralLines: [{wavelength: 343.5, upperLevelEnergy: 3.61}, {wavelength: 369.2, upperLevelEnergy: 3.36}, {wavelength: 370.1, upperLevelEnergy: 3.35}]},
+            {num: 46, symbol: 'Pd', name: 'Palladium', mass: '106.4', category: 'transition-metal', row: 5, col: 10, spectralLines: [{wavelength: 340.5, upperLevelEnergy: 3.64}, {wavelength: 342.1, upperLevelEnergy: 3.62}, {wavelength: 363.5, upperLevelEnergy: 3.41}]},
+            {num: 47, symbol: 'Ag', name: 'Silver', mass: '107.9', category: 'transition-metal', row: 5, col: 11, spectralLines: [{wavelength: 328.1, upperLevelEnergy: 3.78}, {wavelength: 338.3, upperLevelEnergy: 3.67}, {wavelength: 520.9, upperLevelEnergy: 2.38}]},
+            {num: 48, symbol: 'Cd', name: 'Cadmium', mass: '112.4', category: 'transition-metal', row: 5, col: 12, spectralLines: [{wavelength: 228.8, upperLevelEnergy: 5.42}, {wavelength: 326.1, upperLevelEnergy: 3.80}, {wavelength: 340.4, upperLevelEnergy: 3.64}]},
+            {num: 49, symbol: 'In', name: 'Indium', mass: '114.8', category: 'post-transition', row: 5, col: 13, spectralLines: [{wavelength: 451.1, upperLevelEnergy: 2.75}, {wavelength: 410.2, upperLevelEnergy: 3.02}, {wavelength: 325.6, upperLevelEnergy: 3.81}]},
+            {num: 50, symbol: 'Sn', name: 'Tin', mass: '118.7', category: 'post-transition', row: 5, col: 14, spectralLines: [{wavelength: 286.3, upperLevelEnergy: 4.33}, {wavelength: 283.9, upperLevelEnergy: 4.37}, {wavelength: 303.4, upperLevelEnergy: 4.09}]},
+            {num: 51, symbol: 'Sb', name: 'Antimony', mass: '121.8', category: 'metalloid', row: 5, col: 15, spectralLines: [{wavelength: 217.6, upperLevelEnergy: 5.70}, {wavelength: 231.1, upperLevelEnergy: 5.37}, {wavelength: 206.8, upperLevelEnergy: 6.00}]},
+            {num: 52, symbol: 'Te', name: 'Tellurium', mass: '127.6', category: 'metalloid', row: 5, col: 16, spectralLines: [{wavelength: 214.3, upperLevelEnergy: 5.78}, {wavelength: 225.9, upperLevelEnergy: 5.49}, {wavelength: 238.6, upperLevelEnergy: 5.20}]},
+            {num: 53, symbol: 'I', name: 'Iodine', mass: '126.9', category: 'halogen', row: 5, col: 17, spectralLines: [{wavelength: 183.0, upperLevelEnergy: 6.78}, {wavelength: 206.2, upperLevelEnergy: 6.01}, {wavelength: 187.6, upperLevelEnergy: 6.61}]},
+            {num: 54, symbol: 'Xe', name: 'Xenon', mass: '131.3', category: 'noble-gas', row: 5, col: 18, spectralLines: [{wavelength: 823.2, upperLevelEnergy: 13.3}, {wavelength: 828.0, upperLevelEnergy: 13.3}, {wavelength: 881.9, upperLevelEnergy: 13.3}]},
             
             // Period 6
-            {num: 55, symbol: 'Cs', name: 'Cesium', mass: '132.9', category: 'alkali-metal', row: 6, col: 1, spectralLines: [852.1, 894.4, 455.5]},
-            {num: 56, symbol: 'Ba', name: 'Barium', mass: '137.3', category: 'alkaline-earth', row: 6, col: 2, spectralLines: [553.6, 455.4, 493.4]},
-            {num: 57, symbol: 'La', name: 'Lanthanum', mass: '138.9', category: 'lanthanide', row: 6, col: 3, spectralLines: [550.1, 418.7, 394.9]},
-            {num: 72, symbol: 'Hf', name: 'Hafnium', mass: '178.5', category: 'transition-metal', row: 6, col: 4, spectralLines: [307.3, 313.5, 339.0]},
-            {num: 73, symbol: 'Ta', name: 'Tantalum', mass: '180.9', category: 'transition-metal', row: 6, col: 5, spectralLines: [265.1, 268.5, 271.5]},
-            {num: 74, symbol: 'W', name: 'Tungsten', mass: '183.8', category: 'transition-metal', row: 6, col: 6, spectralLines: [400.9, 429.5, 430.2]},
-            {num: 75, symbol: 'Re', name: 'Rhenium', mass: '186.2', category: 'transition-metal', row: 6, col: 7, spectralLines: [346.0, 346.5, 345.2]},
-            {num: 76, symbol: 'Os', name: 'Osmium', mass: '190.2', category: 'transition-metal', row: 6, col: 8, spectralLines: [301.8, 305.9, 330.2]},
-            {num: 77, symbol: 'Ir', name: 'Iridium', mass: '192.2', category: 'transition-metal', row: 6, col: 9, spectralLines: [322.1, 380.0, 351.4]},
-            {num: 78, symbol: 'Pt', name: 'Platinum', mass: '195.1', category: 'transition-metal', row: 6, col: 10, spectralLines: [265.9, 306.5, 299.8]},
-            {num: 79, symbol: 'Au', name: 'Gold', mass: '197.0', category: 'transition-metal', row: 6, col: 11, spectralLines: [242.8, 267.6, 274.8]},
-            {num: 80, symbol: 'Hg', name: 'Mercury', mass: '200.6', category: 'transition-metal', row: 6, col: 12, spectralLines: [253.7, 435.8, 546.1]},
-            {num: 81, symbol: 'Tl', name: 'Thallium', mass: '204.4', category: 'post-transition', row: 6, col: 13, spectralLines: [377.6, 535.0, 276.8]},
-            {num: 82, symbol: 'Pb', name: 'Lead', mass: '207.2', category: 'post-transition', row: 6, col: 14, spectralLines: [283.3, 405.8, 368.3]},
-            {num: 83, symbol: 'Bi', name: 'Bismuth', mass: '209.0', category: 'post-transition', row: 6, col: 15, spectralLines: [306.8, 223.1, 289.8]},
-            {num: 84, symbol: 'Po', name: 'Polonium', mass: '(209)', category: 'metalloid', row: 6, col: 16, spectralLines: [255.8, 264.4, 277.6]},
-            {num: 85, symbol: 'At', name: 'Astatine', mass: '(210)', category: 'halogen', row: 6, col: 17, spectralLines: [224.4, 216.2, 206.2]},
-            {num: 86, symbol: 'Rn', name: 'Radon', mass: '(222)', category: 'noble-gas', row: 6, col: 18, spectralLines: [585.2, 540.1, 640.2]},
+            {num: 55, symbol: 'Cs', name: 'Cesium', mass: '132.9', category: 'alkali-metal', row: 6, col: 1, spectralLines: [{wavelength: 852.1, upperLevelEnergy: 1.46}, {wavelength: 894.4, upperLevelEnergy: 1.39}, {wavelength: 455.5, upperLevelEnergy: 2.72}]},
+            {num: 56, symbol: 'Ba', name: 'Barium', mass: '137.3', category: 'alkaline-earth', row: 6, col: 2, spectralLines: [{wavelength: 553.6, upperLevelEnergy: 2.24}, {wavelength: 455.4, upperLevelEnergy: 2.72}, {wavelength: 493.4, upperLevelEnergy: 2.51}]},
+            {num: 57, symbol: 'La', name: 'Lanthanum', mass: '138.9', category: 'lanthanide', row: 6, col: 3, spectralLines: [{wavelength: 550.1, upperLevelEnergy: 2.25}, {wavelength: 418.7, upperLevelEnergy: 2.96}, {wavelength: 394.9, upperLevelEnergy: 3.14}]},
+            {num: 72, symbol: 'Hf', name: 'Hafnium', mass: '178.5', category: 'transition-metal', row: 6, col: 4, spectralLines: [{wavelength: 307.3, upperLevelEnergy: 4.03}, {wavelength: 313.5, upperLevelEnergy: 3.96}, {wavelength: 339.0, upperLevelEnergy: 3.66}]},
+            {num: 73, symbol: 'Ta', name: 'Tantalum', mass: '180.9', category: 'transition-metal', row: 6, col: 5, spectralLines: [{wavelength: 265.1, upperLevelEnergy: 4.68}, {wavelength: 268.5, upperLevelEnergy: 4.62}, {wavelength: 271.5, upperLevelEnergy: 4.57}]},
+            {num: 74, symbol: 'W', name: 'Tungsten', mass: '183.8', category: 'transition-metal', row: 6, col: 6, spectralLines: [{wavelength: 400.9, upperLevelEnergy: 3.09}, {wavelength: 429.5, upperLevelEnergy: 2.89}, {wavelength: 430.2, upperLevelEnergy: 2.88}]},
+            {num: 75, symbol: 'Re', name: 'Rhenium', mass: '186.2', category: 'transition-metal', row: 6, col: 7, spectralLines: [{wavelength: 346.0, upperLevelEnergy: 3.58}, {wavelength: 346.5, upperLevelEnergy: 3.58}, {wavelength: 345.2, upperLevelEnergy: 3.59}]},
+            {num: 76, symbol: 'Os', name: 'Osmium', mass: '190.2', category: 'transition-metal', row: 6, col: 8, spectralLines: [{wavelength: 301.8, upperLevelEnergy: 4.11}, {wavelength: 305.9, upperLevelEnergy: 4.05}, {wavelength: 330.2, upperLevelEnergy: 3.75}]},
+            {num: 77, symbol: 'Ir', name: 'Iridium', mass: '192.2', category: 'transition-metal', row: 6, col: 9, spectralLines: [{wavelength: 322.1, upperLevelEnergy: 3.85}, {wavelength: 380.0, upperLevelEnergy: 3.26}, {wavelength: 351.4, upperLevelEnergy: 3.53}]},
+            {num: 78, symbol: 'Pt', name: 'Platinum', mass: '195.1', category: 'transition-metal', row: 6, col: 10, spectralLines: [{wavelength: 265.9, upperLevelEnergy: 4.66}, {wavelength: 306.5, upperLevelEnergy: 4.05}, {wavelength: 299.8, upperLevelEnergy: 4.14}]},
+            {num: 79, symbol: 'Au', name: 'Gold', mass: '197.0', category: 'transition-metal', row: 6, col: 11, spectralLines: [{wavelength: 242.8, upperLevelEnergy: 5.11}, {wavelength: 267.6, upperLevelEnergy: 4.63}, {wavelength: 274.8, upperLevelEnergy: 4.51}]},
+            {num: 80, symbol: 'Hg', name: 'Mercury', mass: '200.6', category: 'transition-metal', row: 6, col: 12, spectralLines: [{wavelength: 253.7, upperLevelEnergy: 4.89}, {wavelength: 435.8, upperLevelEnergy: 2.84}, {wavelength: 546.1, upperLevelEnergy: 2.27}]},
+            {num: 81, symbol: 'Tl', name: 'Thallium', mass: '204.4', category: 'post-transition', row: 6, col: 13, spectralLines: [{wavelength: 377.6, upperLevelEnergy: 3.28}, {wavelength: 535.0, upperLevelEnergy: 2.32}, {wavelength: 276.8, upperLevelEnergy: 4.48}]},
+            {num: 82, symbol: 'Pb', name: 'Lead', mass: '207.2', category: 'post-transition', row: 6, col: 14, spectralLines: [{wavelength: 283.3, upperLevelEnergy: 4.38}, {wavelength: 405.8, upperLevelEnergy: 3.06}, {wavelength: 368.3, upperLevelEnergy: 3.37}]},
+            {num: 83, symbol: 'Bi', name: 'Bismuth', mass: '209.0', category: 'post-transition', row: 6, col: 15, spectralLines: [{wavelength: 306.8, upperLevelEnergy: 4.04}, {wavelength: 223.1, upperLevelEnergy: 5.56}, {wavelength: 289.8, upperLevelEnergy: 4.28}]},
+            {num: 84, symbol: 'Po', name: 'Polonium', mass: '(209)', category: 'metalloid', row: 6, col: 16, spectralLines: [{wavelength: 255.8, upperLevelEnergy: 4.85}, {wavelength: 264.4, upperLevelEnergy: 4.69}, {wavelength: 277.6, upperLevelEnergy: 4.47}]},
+            {num: 85, symbol: 'At', name: 'Astatine', mass: '(210)', category: 'halogen', row: 6, col: 17, spectralLines: [{wavelength: 224.4, upperLevelEnergy: 5.53}, {wavelength: 216.2, upperLevelEnergy: 5.73}, {wavelength: 206.2, upperLevelEnergy: 6.01}]},
+            {num: 86, symbol: 'Rn', name: 'Radon', mass: '(222)', category: 'noble-gas', row: 6, col: 18, spectralLines: [{wavelength: 585.2, upperLevelEnergy: 18.6}, {wavelength: 540.1, upperLevelEnergy: 19.7}, {wavelength: 640.2, upperLevelEnergy: 16.7}]},
             
             // Period 7
-            {num: 87, symbol: 'Fr', name: 'Francium', mass: '(223)', category: 'alkali-metal', row: 7, col: 1, spectralLines: [817.2, 894.3, 422.7]},
-            {num: 88, symbol: 'Ra', name: 'Radium', mass: '(226)', category: 'alkaline-earth', row: 7, col: 2, spectralLines: [468.2, 381.4, 482.6]},
-            {num: 89, symbol: 'Ac', name: 'Actinium', mass: '(227)', category: 'actinide', row: 7, col: 3, spectralLines: [440.0, 415.2, 408.6]},
-            {num: 104, symbol: 'Rf', name: 'Rutherfordium', mass: '(267)', category: 'transition-metal', row: 7, col: 4, spectralLines: [300.0, 310.0, 320.0]},
-            {num: 105, symbol: 'Db', name: 'Dubnium', mass: '(268)', category: 'transition-metal', row: 7, col: 5, spectralLines: [305.0, 315.0, 325.0]},
-            {num: 106, symbol: 'Sg', name: 'Seaborgium', mass: '(269)', category: 'transition-metal', row: 7, col: 6, spectralLines: [310.0, 320.0, 330.0]},
-            {num: 107, symbol: 'Bh', name: 'Bohrium', mass: '(270)', category: 'transition-metal', row: 7, col: 7, spectralLines: [315.0, 325.0, 335.0]},
-            {num: 108, symbol: 'Hs', name: 'Hassium', mass: '(277)', category: 'transition-metal', row: 7, col: 8, spectralLines: [320.0, 330.0, 340.0]},
-            {num: 109, symbol: 'Mt', name: 'Meitnerium', mass: '(278)', category: 'unknown', row: 7, col: 9, spectralLines: [325.0, 335.0, 345.0]},
-            {num: 110, symbol: 'Ds', name: 'Darmstadtium', mass: '(281)', category: 'unknown', row: 7, col: 10, spectralLines: [330.0, 340.0, 350.0]},
-            {num: 111, symbol: 'Rg', name: 'Roentgenium', mass: '(282)', category: 'unknown', row: 7, col: 11, spectralLines: [335.0, 345.0, 355.0]},
-            {num: 112, symbol: 'Cn', name: 'Copernicium', mass: '(285)', category: 'transition-metal', row: 7, col: 12, spectralLines: [340.0, 350.0, 360.0]},
-            {num: 113, symbol: 'Nh', name: 'Nihonium', mass: '(286)', category: 'unknown', row: 7, col: 13, spectralLines: [345.0, 355.0, 365.0]},
-            {num: 114, symbol: 'Fl', name: 'Flerovium', mass: '(289)', category: 'unknown', row: 7, col: 14, spectralLines: [350.0, 360.0, 370.0]},
-            {num: 115, symbol: 'Mc', name: 'Moscovium', mass: '(290)', category: 'unknown', row: 7, col: 15, spectralLines: [355.0, 365.0, 375.0]},
-            {num: 116, symbol: 'Lv', name: 'Livermorium', mass: '(293)', category: 'unknown', row: 7, col: 16, spectralLines: [360.0, 370.0, 380.0]},
-            {num: 117, symbol: 'Ts', name: 'Tennessine', mass: '(294)', category: 'unknown', row: 7, col: 17, spectralLines: [365.0, 375.0, 385.0]},
-            {num: 118, symbol: 'Og', name: 'Oganesson', mass: '(294)', category: 'noble-gas', row: 7, col: 18, spectralLines: [370.0, 380.0, 390.0]},
+            {num: 87, symbol: 'Fr', name: 'Francium', mass: '(223)', category: 'alkali-metal', row: 7, col: 1, spectralLines: [{wavelength: 817.2, upperLevelEnergy: 1.52}, {wavelength: 894.3, upperLevelEnergy: 1.39}, {wavelength: 422.7, upperLevelEnergy: 2.93}]},
+            {num: 88, symbol: 'Ra', name: 'Radium', mass: '(226)', category: 'alkaline-earth', row: 7, col: 2, spectralLines: [{wavelength: 468.2, upperLevelEnergy: 2.65}, {wavelength: 381.4, upperLevelEnergy: 3.25}, {wavelength: 482.6, upperLevelEnergy: 2.57}]},
+            {num: 89, symbol: 'Ac', name: 'Actinium', mass: '(227)', category: 'actinide', row: 7, col: 3, spectralLines: [{wavelength: 440.0, upperLevelEnergy: 2.82}, {wavelength: 415.2, upperLevelEnergy: 2.99}, {wavelength: 408.6, upperLevelEnergy: 3.03}]},
+            {num: 104, symbol: 'Rf', name: 'Rutherfordium', mass: '(267)', category: 'transition-metal', row: 7, col: 4, spectralLines: [{wavelength: 300.0, upperLevelEnergy: 4.13}, {wavelength: 310.0, upperLevelEnergy: 4.00}, {wavelength: 320.0, upperLevelEnergy: 3.88}]},
+            {num: 105, symbol: 'Db', name: 'Dubnium', mass: '(268)', category: 'transition-metal', row: 7, col: 5, spectralLines: [{wavelength: 305.0, upperLevelEnergy: 4.07}, {wavelength: 315.0, upperLevelEnergy: 3.94}, {wavelength: 325.0, upperLevelEnergy: 3.82}]},
+            {num: 106, symbol: 'Sg', name: 'Seaborgium', mass: '(269)', category: 'transition-metal', row: 7, col: 6, spectralLines: [{wavelength: 310.0, upperLevelEnergy: 4.00}, {wavelength: 320.0, upperLevelEnergy: 3.88}, {wavelength: 330.0, upperLevelEnergy: 3.76}]},
+            {num: 107, symbol: 'Bh', name: 'Bohrium', mass: '(270)', category: 'transition-metal', row: 7, col: 7, spectralLines: [{wavelength: 315.0, upperLevelEnergy: 3.94}, {wavelength: 325.0, upperLevelEnergy: 3.82}, {wavelength: 335.0, upperLevelEnergy: 3.70}]},
+            {num: 108, symbol: 'Hs', name: 'Hassium', mass: '(277)', category: 'transition-metal', row: 7, col: 8, spectralLines: [{wavelength: 320.0, upperLevelEnergy: 3.88}, {wavelength: 330.0, upperLevelEnergy: 3.76}, {wavelength: 340.0, upperLevelEnergy: 3.65}]},
+            {num: 109, symbol: 'Mt', name: 'Meitnerium', mass: '(278)', category: 'unknown', row: 7, col: 9, spectralLines: [{wavelength: 325.0, upperLevelEnergy: 3.82}, {wavelength: 335.0, upperLevelEnergy: 3.70}, {wavelength: 345.0, upperLevelEnergy: 3.59}]},
+            {num: 110, symbol: 'Ds', name: 'Darmstadtium', mass: '(281)', category: 'unknown', row: 7, col: 10, spectralLines: [{wavelength: 330.0, upperLevelEnergy: 3.76}, {wavelength: 340.0, upperLevelEnergy: 3.65}, {wavelength: 350.0, upperLevelEnergy: 3.54}]},
+            {num: 111, symbol: 'Rg', name: 'Roentgenium', mass: '(282)', category: 'unknown', row: 7, col: 11, spectralLines: [{wavelength: 335.0, upperLevelEnergy: 3.70}, {wavelength: 345.0, upperLevelEnergy: 3.59}, {wavelength: 355.0, upperLevelEnergy: 3.49}]},
+            {num: 112, symbol: 'Cn', name: 'Copernicium', mass: '(285)', category: 'transition-metal', row: 7, col: 12, spectralLines: [{wavelength: 340.0, upperLevelEnergy: 3.65}, {wavelength: 350.0, upperLevelEnergy: 3.54}, {wavelength: 360.0, upperLevelEnergy: 3.44}]},
+            {num: 113, symbol: 'Nh', name: 'Nihonium', mass: '(286)', category: 'unknown', row: 7, col: 13, spectralLines: [{wavelength: 345.0, upperLevelEnergy: 3.59}, {wavelength: 355.0, upperLevelEnergy: 3.49}, {wavelength: 365.0, upperLevelEnergy: 3.40}]},
+            {num: 114, symbol: 'Fl', name: 'Flerovium', mass: '(289)', category: 'unknown', row: 7, col: 14, spectralLines: [{wavelength: 350.0, upperLevelEnergy: 3.54}, {wavelength: 360.0, upperLevelEnergy: 3.44}, {wavelength: 370.0, upperLevelEnergy: 3.35}]},
+            {num: 115, symbol: 'Mc', name: 'Moscovium', mass: '(290)', category: 'unknown', row: 7, col: 15, spectralLines: [{wavelength: 355.0, upperLevelEnergy: 3.49}, {wavelength: 365.0, upperLevelEnergy: 3.40}, {wavelength: 375.0, upperLevelEnergy: 3.31}]},
+            {num: 116, symbol: 'Lv', name: 'Livermorium', mass: '(293)', category: 'unknown', row: 7, col: 16, spectralLines: [{wavelength: 360.0, upperLevelEnergy: 3.44}, {wavelength: 370.0, upperLevelEnergy: 3.35}, {wavelength: 380.0, upperLevelEnergy: 3.26}]},
+            {num: 117, symbol: 'Ts', name: 'Tennessine', mass: '(294)', category: 'unknown', row: 7, col: 17, spectralLines: [{wavelength: 365.0, upperLevelEnergy: 3.40}, {wavelength: 375.0, upperLevelEnergy: 3.31}, {wavelength: 385.0, upperLevelEnergy: 3.22}]},
+            {num: 118, symbol: 'Og', name: 'Oganesson', mass: '(294)', category: 'noble-gas', row: 7, col: 18, spectralLines: [{wavelength: 370.0, upperLevelEnergy: 3.35}, {wavelength: 380.0, upperLevelEnergy: 3.26}, {wavelength: 390.0, upperLevelEnergy: 3.18}]},
             
             // Lanthanides (row 9, displayed separately)
-            {num: 58, symbol: 'Ce', name: 'Cerium', mass: '140.1', category: 'lanthanide', row: 9, col: 4, spectralLines: [418.7, 413.8, 422.3]},
-            {num: 59, symbol: 'Pr', name: 'Praseodymium', mass: '140.9', category: 'lanthanide', row: 9, col: 5, spectralLines: [422.5, 417.9, 440.9]},
-            {num: 60, symbol: 'Nd', name: 'Neodymium', mass: '144.2', category: 'lanthanide', row: 9, col: 6, spectralLines: [430.4, 435.8, 444.7]},
-            {num: 61, symbol: 'Pm', name: 'Promethium', mass: '(145)', category: 'lanthanide', row: 9, col: 7, spectralLines: [453.2, 458.1, 463.4]},
-            {num: 62, symbol: 'Sm', name: 'Samarium', mass: '150.4', category: 'lanthanide', row: 9, col: 8, spectralLines: [442.4, 428.1, 466.9]},
-            {num: 63, symbol: 'Eu', name: 'Europium', mass: '152.0', category: 'lanthanide', row: 9, col: 9, spectralLines: [459.4, 462.7, 443.6]},
-            {num: 64, symbol: 'Gd', name: 'Gadolinium', mass: '157.3', category: 'lanthanide', row: 9, col: 10, spectralLines: [376.8, 405.8, 419.1]},
-            {num: 65, symbol: 'Tb', name: 'Terbium', mass: '158.9', category: 'lanthanide', row: 9, col: 11, spectralLines: [432.6, 390.7, 384.9]},
-            {num: 66, symbol: 'Dy', name: 'Dysprosium', mass: '162.5', category: 'lanthanide', row: 9, col: 12, spectralLines: [421.2, 407.8, 400.0]},
-            {num: 67, symbol: 'Ho', name: 'Holmium', mass: '164.9', category: 'lanthanide', row: 9, col: 13, spectralLines: [410.4, 405.4, 416.3]},
-            {num: 68, symbol: 'Er', name: 'Erbium', mass: '167.3', category: 'lanthanide', row: 9, col: 14, spectralLines: [400.8, 415.1, 390.6]},
-            {num: 69, symbol: 'Tm', name: 'Thulium', mass: '168.9', category: 'lanthanide', row: 9, col: 15, spectralLines: [410.6, 418.8, 429.4]},
-            {num: 70, symbol: 'Yb', name: 'Ytterbium', mass: '173.1', category: 'lanthanide', row: 9, col: 16, spectralLines: [398.8, 369.4, 328.9]},
-            {num: 71, symbol: 'Lu', name: 'Lutetium', mass: '175.0', category: 'lanthanide', row: 9, col: 17, spectralLines: [331.2, 335.9, 347.2]},
+            {num: 58, symbol: 'Ce', name: 'Cerium', mass: '140.1', category: 'lanthanide', row: 9, col: 4, spectralLines: [{wavelength: 418.7, upperLevelEnergy: 2.96}, {wavelength: 413.8, upperLevelEnergy: 3.00}, {wavelength: 422.3, upperLevelEnergy: 2.94}]},
+            {num: 59, symbol: 'Pr', name: 'Praseodymium', mass: '140.9', category: 'lanthanide', row: 9, col: 5, spectralLines: [{wavelength: 422.5, upperLevelEnergy: 2.94}, {wavelength: 417.9, upperLevelEnergy: 2.97}, {wavelength: 440.9, upperLevelEnergy: 2.81}]},
+            {num: 60, symbol: 'Nd', name: 'Neodymium', mass: '144.2', category: 'lanthanide', row: 9, col: 6, spectralLines: [{wavelength: 430.4, upperLevelEnergy: 2.88}, {wavelength: 435.8, upperLevelEnergy: 2.84}, {wavelength: 444.7, upperLevelEnergy: 2.79}]},
+            {num: 61, symbol: 'Pm', name: 'Promethium', mass: '(145)', category: 'lanthanide', row: 9, col: 7, spectralLines: [{wavelength: 453.2, upperLevelEnergy: 2.74}, {wavelength: 458.1, upperLevelEnergy: 2.71}, {wavelength: 463.4, upperLevelEnergy: 2.68}]},
+            {num: 62, symbol: 'Sm', name: 'Samarium', mass: '150.4', category: 'lanthanide', row: 9, col: 8, spectralLines: [{wavelength: 442.4, upperLevelEnergy: 2.80}, {wavelength: 428.1, upperLevelEnergy: 2.90}, {wavelength: 466.9, upperLevelEnergy: 2.66}]},
+            {num: 63, symbol: 'Eu', name: 'Europium', mass: '152.0', category: 'lanthanide', row: 9, col: 9, spectralLines: [{wavelength: 459.4, upperLevelEnergy: 2.70}, {wavelength: 462.7, upperLevelEnergy: 2.68}, {wavelength: 443.6, upperLevelEnergy: 2.79}]},
+            {num: 64, symbol: 'Gd', name: 'Gadolinium', mass: '157.3', category: 'lanthanide', row: 9, col: 10, spectralLines: [{wavelength: 376.8, upperLevelEnergy: 3.29}, {wavelength: 405.8, upperLevelEnergy: 3.06}, {wavelength: 419.1, upperLevelEnergy: 2.96}]},
+            {num: 65, symbol: 'Tb', name: 'Terbium', mass: '158.9', category: 'lanthanide', row: 9, col: 11, spectralLines: [{wavelength: 432.6, upperLevelEnergy: 2.87}, {wavelength: 390.7, upperLevelEnergy: 3.17}, {wavelength: 384.9, upperLevelEnergy: 3.22}]},
+            {num: 66, symbol: 'Dy', name: 'Dysprosium', mass: '162.5', category: 'lanthanide', row: 9, col: 12, spectralLines: [{wavelength: 421.2, upperLevelEnergy: 2.94}, {wavelength: 407.8, upperLevelEnergy: 3.04}, {wavelength: 400.0, upperLevelEnergy: 3.10}]},
+            {num: 67, symbol: 'Ho', name: 'Holmium', mass: '164.9', category: 'lanthanide', row: 9, col: 13, spectralLines: [{wavelength: 410.4, upperLevelEnergy: 3.02}, {wavelength: 405.4, upperLevelEnergy: 3.06}, {wavelength: 416.3, upperLevelEnergy: 2.98}]},
+            {num: 68, symbol: 'Er', name: 'Erbium', mass: '167.3', category: 'lanthanide', row: 9, col: 14, spectralLines: [{wavelength: 400.8, upperLevelEnergy: 3.09}, {wavelength: 415.1, upperLevelEnergy: 2.99}, {wavelength: 390.6, upperLevelEnergy: 3.17}]},
+            {num: 69, symbol: 'Tm', name: 'Thulium', mass: '168.9', category: 'lanthanide', row: 9, col: 15, spectralLines: [{wavelength: 410.6, upperLevelEnergy: 3.02}, {wavelength: 418.8, upperLevelEnergy: 2.96}, {wavelength: 429.4, upperLevelEnergy: 2.89}]},
+            {num: 70, symbol: 'Yb', name: 'Ytterbium', mass: '173.1', category: 'lanthanide', row: 9, col: 16, spectralLines: [{wavelength: 398.8, upperLevelEnergy: 3.11}, {wavelength: 369.4, upperLevelEnergy: 3.36}, {wavelength: 328.9, upperLevelEnergy: 3.77}]},
+            {num: 71, symbol: 'Lu', name: 'Lutetium', mass: '175.0', category: 'lanthanide', row: 9, col: 17, spectralLines: [{wavelength: 331.2, upperLevelEnergy: 3.74}, {wavelength: 335.9, upperLevelEnergy: 3.69}, {wavelength: 347.2, upperLevelEnergy: 3.57}]},
             
             // Actinides (row 10, displayed separately)
-            {num: 90, symbol: 'Th', name: 'Thorium', mass: '232.0', category: 'actinide', row: 10, col: 4, spectralLines: [401.9, 374.1, 380.3]},
-            {num: 91, symbol: 'Pa', name: 'Protactinium', mass: '231.0', category: 'actinide', row: 10, col: 5, spectralLines: [403.2, 390.4, 406.5]},
-            {num: 92, symbol: 'U', name: 'Uranium', mass: '238.0', category: 'actinide', row: 10, col: 6, spectralLines: [385.9, 393.2, 415.3]},
-            {num: 93, symbol: 'Np', name: 'Neptunium', mass: '(237)', category: 'actinide', row: 10, col: 7, spectralLines: [313.3, 330.0, 340.0]},
-            {num: 94, symbol: 'Pu', name: 'Plutonium', mass: '(244)', category: 'actinide', row: 10, col: 8, spectralLines: [320.0, 330.0, 340.0]},
-            {num: 95, symbol: 'Am', name: 'Americium', mass: '(243)', category: 'actinide', row: 10, col: 9, spectralLines: [325.0, 335.0, 345.0]},
-            {num: 96, symbol: 'Cm', name: 'Curium', mass: '(247)', category: 'actinide', row: 10, col: 10, spectralLines: [330.0, 340.0, 350.0]},
-            {num: 97, symbol: 'Bk', name: 'Berkelium', mass: '(247)', category: 'actinide', row: 10, col: 11, spectralLines: [335.0, 345.0, 355.0]},
-            {num: 98, symbol: 'Cf', name: 'Californium', mass: '(251)', category: 'actinide', row: 10, col: 12, spectralLines: [340.0, 350.0, 360.0]},
-            {num: 99, symbol: 'Es', name: 'Einsteinium', mass: '(252)', category: 'actinide', row: 10, col: 13, spectralLines: [345.0, 355.0, 365.0]},
-            {num: 100, symbol: 'Fm', name: 'Fermium', mass: '(257)', category: 'actinide', row: 10, col: 14, spectralLines: [350.0, 360.0, 370.0]},
-            {num: 101, symbol: 'Md', name: 'Mendelevium', mass: '(258)', category: 'actinide', row: 10, col: 15, spectralLines: [355.0, 365.0, 375.0]},
-            {num: 102, symbol: 'No', name: 'Nobelium', mass: '(259)', category: 'actinide', row: 10, col: 16, spectralLines: [360.0, 370.0, 380.0]},
-            {num: 103, symbol: 'Lr', name: 'Lawrencium', mass: '(266)', category: 'actinide', row: 10, col: 17, spectralLines: [365.0, 375.0, 385.0]},
+            {num: 90, symbol: 'Th', name: 'Thorium', mass: '232.0', category: 'actinide', row: 10, col: 4, spectralLines: [{wavelength: 401.9, upperLevelEnergy: 3.09}, {wavelength: 374.1, upperLevelEnergy: 3.31}, {wavelength: 380.3, upperLevelEnergy: 3.26}]},
+            {num: 91, symbol: 'Pa', name: 'Protactinium', mass: '231.0', category: 'actinide', row: 10, col: 5, spectralLines: [{wavelength: 403.2, upperLevelEnergy: 3.08}, {wavelength: 390.4, upperLevelEnergy: 3.17}, {wavelength: 406.5, upperLevelEnergy: 3.05}]},
+            {num: 92, symbol: 'U', name: 'Uranium', mass: '238.0', category: 'actinide', row: 10, col: 6, spectralLines: [{wavelength: 385.9, upperLevelEnergy: 3.21}, {wavelength: 393.2, upperLevelEnergy: 3.15}, {wavelength: 415.3, upperLevelEnergy: 2.99}]},
+            {num: 93, symbol: 'Np', name: 'Neptunium', mass: '(237)', category: 'actinide', row: 10, col: 7, spectralLines: [{wavelength: 313.3, upperLevelEnergy: 3.96}, {wavelength: 330.0, upperLevelEnergy: 3.76}, {wavelength: 340.0, upperLevelEnergy: 3.65}]},
+            {num: 94, symbol: 'Pu', name: 'Plutonium', mass: '(244)', category: 'actinide', row: 10, col: 8, spectralLines: [{wavelength: 320.0, upperLevelEnergy: 3.88}, {wavelength: 330.0, upperLevelEnergy: 3.76}, {wavelength: 340.0, upperLevelEnergy: 3.65}]},
+            {num: 95, symbol: 'Am', name: 'Americium', mass: '(243)', category: 'actinide', row: 10, col: 9, spectralLines: [{wavelength: 325.0, upperLevelEnergy: 3.82}, {wavelength: 335.0, upperLevelEnergy: 3.70}, {wavelength: 345.0, upperLevelEnergy: 3.59}]},
+            {num: 96, symbol: 'Cm', name: 'Curium', mass: '(247)', category: 'actinide', row: 10, col: 10, spectralLines: [{wavelength: 330.0, upperLevelEnergy: 3.76}, {wavelength: 340.0, upperLevelEnergy: 3.65}, {wavelength: 350.0, upperLevelEnergy: 3.54}]},
+            {num: 97, symbol: 'Bk', name: 'Berkelium', mass: '(247)', category: 'actinide', row: 10, col: 11, spectralLines: [{wavelength: 335.0, upperLevelEnergy: 3.70}, {wavelength: 345.0, upperLevelEnergy: 3.59}, {wavelength: 355.0, upperLevelEnergy: 3.49}]},
+            {num: 98, symbol: 'Cf', name: 'Californium', mass: '(251)', category: 'actinide', row: 10, col: 12, spectralLines: [{wavelength: 340.0, upperLevelEnergy: 3.65}, {wavelength: 350.0, upperLevelEnergy: 3.54}, {wavelength: 360.0, upperLevelEnergy: 3.44}]},
+            {num: 99, symbol: 'Es', name: 'Einsteinium', mass: '(252)', category: 'actinide', row: 10, col: 13, spectralLines: [{wavelength: 345.0, upperLevelEnergy: 3.59}, {wavelength: 355.0, upperLevelEnergy: 3.49}, {wavelength: 365.0, upperLevelEnergy: 3.40}]},
+            {num: 100, symbol: 'Fm', name: 'Fermium', mass: '(257)', category: 'actinide', row: 10, col: 14, spectralLines: [{wavelength: 350.0, upperLevelEnergy: 3.54}, {wavelength: 360.0, upperLevelEnergy: 3.44}, {wavelength: 370.0, upperLevelEnergy: 3.35}]},
+            {num: 101, symbol: 'Md', name: 'Mendelevium', mass: '(258)', category: 'actinide', row: 10, col: 15, spectralLines: [{wavelength: 355.0, upperLevelEnergy: 3.49}, {wavelength: 365.0, upperLevelEnergy: 3.40}, {wavelength: 375.0, upperLevelEnergy: 3.31}]},
+            {num: 102, symbol: 'No', name: 'Nobelium', mass: '(259)', category: 'actinide', row: 10, col: 16, spectralLines: [{wavelength: 360.0, upperLevelEnergy: 3.44}, {wavelength: 370.0, upperLevelEnergy: 3.35}, {wavelength: 380.0, upperLevelEnergy: 3.26}]},
+            {num: 103, symbol: 'Lr', name: 'Lawrencium', mass: '(266)', category: 'actinide', row: 10, col: 17, spectralLines: [{wavelength: 365.0, upperLevelEnergy: 3.40}, {wavelength: 375.0, upperLevelEnergy: 3.31}, {wavelength: 385.0, upperLevelEnergy: 3.22}]},
         ];
 
         // Calculate grid positions and create elements
@@ -444,18 +477,31 @@
             infoBox.style.background = colors.bg;
             infoBox.style.color = colors.text;
             
-            // Format spectral lines
-            const spectralLinesText = element.spectralLines 
-                ? element.spectralLines.map(line => `${line} nm`).join(', ')
-                : 'N/A';
+            // Format spectral lines - each on a new line with energy on the right
+            let spectralLinesHTML = '';
+            if (element.spectralLines && element.spectralLines.length > 0) {
+                spectralLinesHTML = element.spectralLines.map(line => {
+                    const wavelength = typeof line === 'number' ? line : line.wavelength;
+                    const energy = typeof line === 'number' ? null : line.upperLevelEnergy;
+                    const energyText = energy ? `<span class="spectral-line-energy">${energy} eV</span>` : '';
+                    return `<div class="spectral-line"><span>${wavelength} nm</span>${energyText}</div>`;
+                }).join('');
+            } else {
+                spectralLinesHTML = '<div class="spectral-line">N/A</div>';
+            }
             
             infoBox.innerHTML = `
-                <div class="element-symbol">${element.symbol}</div>
-                <h2>${element.name}</h2>
-                <p><strong>Atomic Number:</strong> ${element.num}</p>
-                <p><strong>Atomic Mass:</strong> ${element.mass}</p>
-                <p><strong>Category:</strong> ${element.category.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}</p>
-                <p><strong>Spectral Lines:</strong> ${spectralLinesText}</p>
+                <div class="info-box-header">
+                    <div class="element-symbol">${element.symbol}</div>
+                    <div class="atomic-number-top">
+                        <div>${element.num}</div>
+                        <div class="atomic-mass-top">${element.mass}</div>
+                    </div>
+                </div>
+                <div class="element-name">${element.name}</div>
+                <div class="spectral-lines">
+                    ${spectralLinesHTML}
+                </div>
             `;
         }
 

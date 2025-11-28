@@ -1,4 +1,4 @@
-from LIBSmethods import voigt
+from LIBSmethods import voigt, triangular_function
 import numpy as np
 import h5py
 import matplotlib.pyplot as plt
@@ -45,6 +45,10 @@ with h5py.File(file_path, 'r') as file:
     x0 = wavelength[a1]
     print(f"x0: {x0}")
 
+    triangle = triangular_function(b1, a1, b2)
+    print(f"triangle: {triangle}")
+
+
     selected_spectrum = 45580
 
     basis = voigt(x, x0, np.max(max_data), gamma, sigma)
@@ -83,8 +87,8 @@ with h5py.File(file_path, 'r') as file:
     print(f"max data: {max_data.shape}")
     print(f"real fit: {popt}")
     
-    #plt.plot(x, max_data, label='Max Data')
-    #plt.plot(x, real_fit, label=f'Real Fit,R2:{R2}')
+    plt.plot(x, max_data, label='Max Data')
+    plt.plot(x, real_fit, label=f'Real Fit,R2:{R2}')
     #plt.plot(x, basis*np.max(max_data), label='Basis')
     plt.plot(x, test_real_fit, label=f'Test Real Fit,R2:{R2_test}')
     plt.plot(x, data_slice[selected_spectrum,:], label='Data_test')
