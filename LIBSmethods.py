@@ -142,8 +142,9 @@ def simple_voigt_fit(data, wavelengths, b1_w, b2_w):
     # Find the indices of the wavelengths
     b1 = np.argmin(np.abs(wavelengths - b1_w))
     b2 = np.argmin(np.abs(wavelengths - b2_w))
-    gamma = -2
-    sigma = 0.6
+    # Use same parameters as voigt_fit for consistency
+    gamma = 0.1
+    sigma = 0.006
     x = wavelengths[b1:b2]
     data_slice = data[:,b1:b2]
     max_data = np.max(data_slice, axis=0)
