@@ -9,8 +9,22 @@ PARTITION_FUNCTION_PATH = "/home/LIBS/prochazka/data/Running_projects/24_0011_CF
 EION_PATH = "/home/LIBS/prochazka/data/Running_projects/24_0011_CF_spark/CF SPARK/Methods/Git/CF_OES/E_ion.txt"
 
 def snv(data):
-    #normalize the data to standard normal distribution with zero mean and unit variance
-    data_snv = (data - np.mean(data, axis=1, keepdims=True)) / np.std(data, axis=1, keepdims=True)
+    """
+    Standard Normal Variate (SNV) normalization.
+    Normalizes each row to have zero mean and unit variance.
+    
+    Handles zero variance cases (rows with all identical values) by adding
+    a small epsilon to prevent division by zero, which would produce inf/nan values.
+    """
+    data_mean = np.mean(data, axis=1, keepdims=True)
+    data_std = np.std(data, axis=1, keepdims=True)
+    
+    # Add small epsilon to prevent division by zero when variance is zero
+    # When std is zero, mean-centered data is already zero, so result will be zero
+    epsilon = 1e-10
+    data_std = np.maximum(data_std, epsilon)
+    
+    data_snv = (data - data_mean) / data_std
     return data_snv
 
 def triangular_function(b1,a1,b2):
