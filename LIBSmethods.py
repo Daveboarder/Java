@@ -3,7 +3,10 @@ from scipy.signal import correlate
 from scipy.stats import pearsonr
 from scipy.special import wofz
 from scipy.optimize import curve_fit
+import pandas as pd
 
+PARTITION_FUNCTION_PATH = "/home/LIBS/prochazka/data/Running_projects/24_0011_CF_spark/CF SPARK/Methods/Git/CF_OES/PartF_var.txt"
+EION_PATH = "/home/LIBS/prochazka/data/Running_projects/24_0011_CF_spark/CF SPARK/Methods/Git/CF_OES/E_ion.txt"
 
 def snv(data):
     #normalize the data to standard normal distribution with zero mean and unit variance
@@ -137,3 +140,18 @@ def simple_voigt_fit(data, wavelengths, b1_w, b2_w):
     amplitudes = data_slice @ basis / denom
     signal_area = amplitudes * np.trapz(basis, x)
     return signal_area  # Return the signal area for each row
+
+def partition_function(elem, T):
+    df = pd.read_csv(PARTITION_FUNCTION_PATH, sep='\t', decimal='.')
+    kb_eV = 8.617333262e-5  # eV/K
+
+    df_I = df[(df['Element'] == elem) & (df['ionState'] == 'I')]
+    df_II = df[(df['Element'] == elem) & (df['ionState'] == 'II')]
+
+    U_I = np.sum(df_I['gi'] * np.exp(-df_I['Ei'] / (kb_eV * T)))
+    U_II = np.sum(df_II['gi'] * np.exp(-df_II['Ei'] / (kb_eV * T)))
+    #Change U_I and U_II to float
+    U_I = float(U_I)
+    U_II = float(U_II)
+
+    return U_I, U_II

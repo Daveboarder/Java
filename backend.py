@@ -155,12 +155,6 @@ def plot_kmeans_map():
         x_step = request.json.get('x_step', [])
         y_step = request.json.get('y_step', [])
 
-        if x_len < y_len:
-            x_len, y_len = y_len, x_len
-            x_step, y_step = y_step, x_step
-            x_pos, y_pos = y_pos, x_pos
-
-
         # Validate arrays
         if len(x_pos) == 0 or len(y_pos) == 0 or len(kmeans_labels) == 0:
             return jsonify({'success': False, 'error': 'Empty arrays provided'}), 400
@@ -184,6 +178,12 @@ def plot_kmeans_map():
             y_step = 1
             x_len = len(np.unique(x_pos))
             y_len = len(np.unique(y_pos))
+
+        # Swap axes if needed (same logic as plot_intensity_map)
+        if x_len < y_len:
+            x_len, y_len = y_len, x_len
+            x_step, y_step = y_step, x_step
+            x_pos, y_pos = y_pos, x_pos
 
         # Calculate dimensions with reasonable defaults
         x_span = x_len*x_step

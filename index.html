@@ -5,6 +5,8 @@
     <title>LIBS Data Processing</title>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -36,6 +38,17 @@
             padding: 10px;
             background: #f0f0f0;
             border-radius: 5px;
+        }
+        #loaded_image_container {
+            position: relative;
+        }
+        #loaded_image_container img {
+            display: block;
+            max-width: 100%;
+            max-height: 600px;
+        }
+        .cropper-container {
+            direction: ltr;
         }
     </style>
 </head>
@@ -110,8 +123,29 @@
     </div>
     
     <div id="map_section" style="display:none;">
-        <h2>Intensity Map</h2>
-        <div id="intensity_map" class="plot-container"></div>
+        <div style="display: flex; flex-direction: column; gap: 20px;">
+            <div>
+                <h2>Intensity Map</h2>
+                <div id="intensity_map" class="plot-container"></div>
+            </div>
+            <div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <h2 style="margin: 0;">Loaded Image</h2>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="file" id="image_file_input" accept="image/*" style="display: none;" onchange="handleImageLoad(event)">
+                        <button onclick="document.getElementById('image_file_input').click()" style="padding: 5px 15px;">Load Image</button>
+                        <button id="crop_btn" onclick="cropImage()" style="padding: 5px 15px; display: none;">Crop</button>
+                        <button id="reset_btn" onclick="resetImage()" style="padding: 5px 15px; display: none;">Reset</button>
+                        <button id="zoom_in_btn" onclick="zoomImage(0.1)" style="padding: 5px 15px; display: none;">Zoom In</button>
+                        <button id="zoom_out_btn" onclick="zoomImage(-0.1)" style="padding: 5px 15px; display: none;">Zoom Out</button>
+                    </div>
+                </div>
+                <div id="loaded_image_container" class="plot-container" style="display: flex; align-items: center; justify-content: center; min-height: 400px; background: #f9f9f9; overflow: hidden;">
+                    <p id="no_image_msg" style="color: #999; font-style: italic;">No image loaded</p>
+                    <img id="loaded_image" style="max-width: 100%; max-height: 100%; display: none;" alt="Loaded image">
+                </div>
+            </div>
+        </div>
     </div>
     
     <div class="saved-lines" id="pca_section" style="display:none; margin-top: 20px;">
@@ -129,6 +163,12 @@
         <h2>PCA Scores Plot</h2>
         <p class="info-text">Principal Component scores visualization</p>
         <div id="pca_scores_plot" class="plot-container"></div>
+    </div>
+    
+    <div id="pca_scores_3d_section" style="display:none;">
+        <h2>PCA Scores 3D Plot</h2>
+        <p class="info-text">Interactive 3D visualization of PC1, PC2, and PC3 scores</p>
+        <div id="pca_scores_3d_plot" class="plot-container"></div>
     </div>
     
     <div id="kmeans_scree_section" style="display:none;">
@@ -496,6 +536,9 @@
                         // Plot PCA scores (PC1 vs PC2 and PC1 vs PC3)
                         plotPCAScores(data);
                         
+                        // Plot PCA scores 3D visualization
+                        plotPCAScores3D(data);
+                        
                         // Plot k-means scree plot
                         plotKMeansScree(data);
                         
@@ -576,6 +619,7 @@
             const PC1_scores = data.PC1_scores;
             const PC2_scores = data.PC2_scores;
             const PC3_scores = data.PC3_scores;
+            const kmeans_labels = data.kmeans_labels;
             
             // Get explained variance percentages
             const var_PC1 = (data.explained_variance_PC1 * 100).toFixed(2);
@@ -674,6 +718,65 @@
             
             Plotly.newPlot('pca_scores_plot', [trace1, trace2, trace3], layout, {responsive: true});
             $('#pca_scores_section').show();
+        }
+
+        function plotPCAScores3D(data) {
+            const PC1_scores = data.PC1_scores;
+            const PC2_scores = data.PC2_scores;
+            const PC3_scores = data.PC3_scores;
+            const kmeans_labels = data.kmeans_labels;
+            
+            // Get explained variance percentages
+            const var_PC1 = (data.explained_variance_PC1 * 100).toFixed(2);
+            const var_PC2 = (data.explained_variance_PC2 * 100).toFixed(2);
+            const var_PC3 = (data.explained_variance_PC3 * 100).toFixed(2);
+            
+            // Create 3D scatter plot using Plotly's Scatter3d
+            const trace = {
+                x: PC1_scores,
+                y: PC2_scores,
+                z: PC3_scores,
+                mode: 'markers',
+                type: 'scatter3d',
+                marker: {
+                    size: 4,
+                    color: kmeans_labels,  // Color by PC1 scores
+                    opacity: 0.7
+                },
+                hovertemplate: `PC1: %{x:.3f} (${var_PC1}%)<br>PC2: %{y:.3f} (${var_PC2}%)<br>PC3: %{z:.3f} (${var_PC3}%)<br>Cluster: %{marker.color}<extra></extra>`
+            };
+            
+            const layout = {
+                title: `PCA Scores 3D Plot (PC1: ${var_PC1}%, PC2: ${var_PC2}%, PC3: ${var_PC3}%)`,
+                scene: {
+                    xaxis: {
+                        title: `PC1 (${var_PC1}% variance)`,
+                        showgrid: true
+                    },
+                    yaxis: {
+                        title: `PC2 (${var_PC2}% variance)`,
+                        showgrid: true
+                    },
+                    zaxis: {
+                        title: `PC3 (${var_PC3}% variance)`,
+                        showgrid: true
+                    },
+                    camera: {
+                        eye: {x: 1.5, y: 1.5, z: 1.5}
+                    }
+                },
+                template: 'plotly_white',
+                height: 600,
+                margin: {
+                    l: 0,
+                    r: 0,
+                    t: 50,
+                    b: 0
+                }
+            };
+            
+            Plotly.newPlot('pca_scores_3d_plot', [trace], layout, {responsive: true});
+            $('#pca_scores_3d_section').show();
         }
 
         function plotKMeansScree(data) {
@@ -949,6 +1052,138 @@
             if (bytes < 1024) return bytes + ' B';
             if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
             return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+        }
+        
+        // Store cropper instance
+        let cropperInstance = null;
+        
+        function handleImageLoad(event) {
+            const file = event.target.files[0];
+            if (!file) {
+                return;
+            }
+            
+            // Check if file is an image
+            if (!file.type.startsWith('image/')) {
+                alert('Please select an image file.');
+                return;
+            }
+            
+            // Destroy existing cropper if any
+            if (cropperInstance) {
+                cropperInstance.destroy();
+                cropperInstance = null;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const imageElement = $('#loaded_image');
+                const noImageMsg = $('#no_image_msg');
+                const imageContainer = $('#loaded_image_container');
+                
+                // Hide placeholder and show image
+                noImageMsg.hide();
+                imageElement.attr('src', e.target.result);
+                imageElement.show();
+                
+                // Show manipulation buttons
+                $('#crop_btn').show();
+                $('#reset_btn').show();
+                $('#zoom_in_btn').show();
+                $('#zoom_out_btn').show();
+                
+                // Initialize Cropper.js
+                cropperInstance = new Cropper(imageElement[0], {
+                    aspectRatio: NaN, // Free aspect ratio
+                    viewMode: 1, // Restrict crop box within canvas
+                    dragMode: 'move', // Default drag mode
+                    autoCropArea: 0.8, // 80% of the image area
+                    restore: false,
+                    guides: true,
+                    center: true,
+                    highlight: false,
+                    cropBoxMovable: true,
+                    cropBoxResizable: true,
+                    toggleable: false,
+                    zoomable: true,
+                    zoomOnTouch: true,
+                    zoomOnWheel: true,
+                    wheelZoomRatio: 0.1,
+                    ready: function() {
+                        // Image is ready
+                        console.log('Cropper initialized');
+                    }
+                });
+            };
+            reader.onerror = function() {
+                alert('Error loading image file.');
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        function cropImage() {
+            if (!cropperInstance) {
+                alert('No image loaded.');
+                return;
+            }
+            
+            // Get cropped canvas
+            const canvas = cropperInstance.getCroppedCanvas({
+                width: cropperInstance.getImageData().naturalWidth,
+                height: cropperInstance.getImageData().naturalHeight,
+                imageSmoothingEnabled: true,
+                imageSmoothingQuality: 'high'
+            });
+            
+            if (canvas) {
+                // Convert canvas to data URL and update image
+                const croppedDataUrl = canvas.toDataURL('image/png');
+                const imageElement = $('#loaded_image');
+                
+                // Destroy old cropper
+                cropperInstance.destroy();
+                cropperInstance = null;
+                
+                // Update image source
+                imageElement.attr('src', croppedDataUrl);
+                
+                // Reinitialize cropper with cropped image
+                cropperInstance = new Cropper(imageElement[0], {
+                    aspectRatio: NaN,
+                    viewMode: 1,
+                    dragMode: 'move',
+                    autoCropArea: 0.8,
+                    restore: false,
+                    guides: true,
+                    center: true,
+                    highlight: false,
+                    cropBoxMovable: true,
+                    cropBoxResizable: true,
+                    toggleable: false,
+                    zoomable: true,
+                    zoomOnTouch: true,
+                    zoomOnWheel: true,
+                    wheelZoomRatio: 0.1
+                });
+            }
+        }
+        
+        function resetImage() {
+            if (!cropperInstance) {
+                return;
+            }
+            
+            // Reset to original state
+            cropperInstance.reset();
+        }
+        
+        function zoomImage(ratio) {
+            if (!cropperInstance) {
+                return;
+            }
+            
+            // Zoom in or out
+            cropperInstance.zoom(ratio);
         }
     </script>
 </body>
