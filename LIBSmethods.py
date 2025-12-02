@@ -157,6 +157,32 @@ def simple_voigt_fit(data, wavelengths, b1_w, b2_w):
     return signal_area  # Return the signal area for each row
 
 def partition_function(elem, T):
+    """
+    Calculate partition function for an element at temperature T.
+    
+    Parameters:
+    -----------
+    elem : str
+        Element symbol
+    T : float
+        Temperature in Kelvin (must be > 0)
+    
+    Returns:
+    --------
+    U_I : float
+        Partition function for neutral state (I)
+    U_II : float
+        Partition function for singly ionized state (II)
+    
+    Raises:
+    -------
+    ValueError
+        If temperature T is zero or negative
+    """
+    # Validate temperature input
+    if T <= 0:
+        raise ValueError(f"Temperature must be positive, got T={T} K. Temperature must be > 0 to avoid division by zero.")
+    
     df = pd.read_csv(PARTITION_FUNCTION_PATH, sep='\t', decimal='.')
     kb_eV = 8.617333262e-5  # eV/K
 
