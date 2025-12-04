@@ -19,16 +19,16 @@ import matplotlib.pyplot as plt
 """
 
 #Constants========================================================
-kb = const.k*10**6 #erg/K
-h = const.h*10**6 #erg*s
+kb = const.k*10**7 #erg/K
+h = const.h*10**7 #erg*s
 c = const.c #m/s
 e = const.e #C
 me = const.electron_mass*1000 #g
 #-----------------------------------------------------------------
-Te = 10000 #K
+Te = 12705 #K
 Ne = 1.79e+18 #cm^-3
-l = 1.4e-01
-N=1
+l = 1.4e-04
+N=1e-4 #cm^-3
 C= 1
 
 print(f"kb: {kb}")
@@ -43,7 +43,7 @@ file_path = '/home/LIBS/prochazka/data/Running_projects/25_0069_3D_chemical_imag
 with h5py.File(file_path, 'r') as file:
     wavelength = file['measurements/Measurement_1/libs/calibration'][:]
 
-element = 'Cu'
+element = 'Ca'
 
 conn = sqlite3.connect('/home/LIBS/prochazka/data/Running_projects/24_0057_LIBSdata_processing/Methods/Mapping/Java/QuantParam.db')
 cursor = conn.cursor()  
@@ -53,10 +53,17 @@ QuantParam = pd.DataFrame(cursor.fetchall(), columns=['Elem_name', 'ion_state', 
 conn.commit()
 conn.close()
 
-print(f"QuantParam: {QuantParam.head()}")
+conn = sqlite3.connect('/home/LIBS/prochazka/data/Running_projects/24_0057_LIBSdata_processing/Methods/Mapping/Java/E_ion.db')
+cursor = conn.cursor()
+cursor.execute("SELECT Eion FROM E_ion WHERE Elem_name = ?", (element+'+I',))
+E_ion = cursor.fetchall()[0][0]
+conn.commit()
+conn.close()
+
+print(f"Eion: {E_ion}")
 
 PF_I, PF_II = partition_function(element, Te)
-S10 = (((2*PF_II)/(Ne*PF_I))*((me*kb*Te)/((h**2)/(2*np.pi)))**(1.5))*np.exp(-(QuantParam['Ek']*1.60217e-12)/(kb*Te)) if not QuantParam.empty else 1
+S10 = (((2*PF_II)/(Ne*PF_I))*((me*kb*Te)/((h**2)/(2*np.pi)))**(1.5))*np.exp(-(E_ion*1.60217e-12)/(kb*Te)) if not QuantParam.empty else 1
 kt = ((QuantParam['Wavelength']**4)/(8*np.pi*c)) * (QuantParam['Ak']*QuantParam['gk']*np.exp(-(QuantParam['Ei']*1.60217e-12)/(kb*Te))) * (1-np.exp(-1.60217e-12*(QuantParam['Ek']-QuantParam['Ei'])/(kb*Te))) / np.where(QuantParam['ion_state']=="I", PF_I, PF_II)
 ri = np.where(QuantParam['ion_state']=="I", 1/(1+S10), S10/(1+S10))
 ion_state = np.where(QuantParam['ion_state']=="I", 1, 0)
@@ -64,16 +71,27 @@ Lp = ((8*np.pi*h*c)/(10*QuantParam['Wavelength']**3))*N*np.exp((-1.60217e-12*(Qu
 tau = C*N*ri*l*kt
 Ifin = Lp*(1-np.exp(-tau))
 
-print(f"Lp: {Lp.shape}")
-print(f"Ifin: {Ifin}")
-print(f'Ifin shape: {Ifin.shape}')
-print(f'Max intensity: {np.max(Ifin)}')
+# Apply Voigt profile to each spectral line and sum them
+# Convert to numpy arrays to avoid pandas broadcasting issues
+wavelength_arr = np.array(wavelength)
+wavelength_lines = QuantParam['Wavelength'].values  # Convert pandas Series to numpy array
+Ifin_arr = Ifin.values  # Convert pandas Series to numpy array
+
+# Initialize the spectrum array
+Ifin_voigt = np.zeros_like(wavelength_arr)
+
+# Sum Voigt profiles for each spectral line
+gamma_fit = 0.1
+sigma_fit = 0.006
+for i in range(len(wavelength_lines)):
+    Ifin_voigt += voigt(wavelength_arr, wavelength_lines[i], Ifin_arr[i], gamma_fit, sigma_fit)
 
 
-
-plt.plot(QuantParam['Wavelength'], Lp)
-plt.xlabel('Wavelength (nm)')
-plt.ylabel('Intensity (a.u.)')
-plt.title('Spectrum')
-plt.savefig('SpectraGenerator.png')
-plt.close()
+#use interactive plotly to plot the spectrum
+import plotly.graph_objects as go
+fig = go.Figure()
+fig.add_trace(go.Scatter(x=wavelength_arr, y=Ifin_voigt, mode='lines', name='Spectrum'))
+fig.update_layout(title='Spectrum', xaxis_title='Wavelength (nm)', yaxis_title='Intensity (a.u.)')
+# Save to HTML file instead of trying to open browser (works in headless environments)
+fig.write_html('SpectraGenerator.html')
+print("Plot saved to SpectraGenerator.html")
