@@ -184,17 +184,18 @@ def partition_function(elem, T):
     if T <= 0:
         raise ValueError(f"Temperature must be positive, got T={T} K. Temperature must be > 0 to avoid division by zero.")
     
-    conn = sqlite3.connect(PARTITION_FUNCTION_PATH)
-    cursor = conn.cursor()  
-    # Get the partition function for the element elem
-    cursor.execute("SELECT Elem_name, ion_state, Ei, gi FROM PartF_var WHERE Elem_name = ?", (elem,))
-    df = pd.DataFrame(cursor.fetchall(), columns=['Elem_name', 'ion_state', 'Ei', 'gi'])
-    df_I = df[(df['ion_state'] == 'I')]
-    df_II = df[(df['ion_state'] == 'II')]
-    kb_eV = 8.617333262e-5  # eV/K
-    U_I = np.sum(df_I['gi'] * np.exp(-df_I['Ei'] / (kb_eV * T)))
-    U_II = np.sum(df_II['gi'] * np.exp(-df_II['Ei'] / (kb_eV * T)))
-    U_I = float(U_I)
-    U_II = float(U_II)
-    conn.close()
+    # Use context manager to ensure connection is always closed, even if exceptions occur
+    with sqlite3.connect(PARTITION_FUNCTION_PATH) as conn:
+        cursor = conn.cursor()  
+        # Get the partition function for the element elem
+        cursor.execute("SELECT Elem_name, ion_state, Ei, gi FROM PartF_var WHERE Elem_name = ?", (elem,))
+        df = pd.DataFrame(cursor.fetchall(), columns=['Elem_name', 'ion_state', 'Ei', 'gi'])
+        df_I = df[(df['ion_state'] == 'I')]
+        df_II = df[(df['ion_state'] == 'II')]
+        kb_eV = 8.617333262e-5  # eV/K
+        U_I = np.sum(df_I['gi'] * np.exp(-df_I['Ei'] / (kb_eV * T)))
+        U_II = np.sum(df_II['gi'] * np.exp(-df_II['Ei'] / (kb_eV * T)))
+        U_I = float(U_I)
+        U_II = float(U_II)
+    
     return U_I, U_II
