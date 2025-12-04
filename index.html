@@ -102,6 +102,21 @@
             <button onclick="plotIntensityMap()" style="padding: 5px 15px; margin-left: 10px;">Plot Map</button>
         </div>
         
+        <div class="saved-lines" id="saved_lines_table_section" style="display:none;">
+            <h3>Saved Lines:</h3>
+            <table id="saved_lines_table" style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+                <thead>
+                    <tr style="background: #e0e0e0;">
+                        <th style="padding: 8px; text-align: left; border: 1px solid #ccc;">Line Name</th>
+                        <th style="padding: 8px; text-align: left; border: 1px solid #ccc;">Central Wavelength (a1, nm)</th>
+                    </tr>
+                </thead>
+                <tbody id="saved_lines_table_body">
+                    <!-- Table rows will be inserted here -->
+                </tbody>
+            </table>
+        </div>
+        
         <div class="saved-lines" id="ratio_section" style="display:none;">
             <h3>Plot Intensity Ratio:</h3>
             <label>Numerator (Line 1):</label>
@@ -330,6 +345,7 @@
                             y_step: data.y_step,
                             b1_w: parseFloat($('#b1_w').val()),
                             b2_w: parseFloat($('#b2_w').val()),
+                            a1_w: data.a1_w || null,  // Central wavelength
                             method: $('#method').val(),
                             timestamp: new Date().toISOString()
                         };
@@ -337,9 +353,13 @@
                         // Update the select dropdowns
                         updateSavedLinesSelect();
                         
+                        // Update the saved lines table
+                        updateSavedLinesTable();
+                        
                         // Show plot and ratio sections
                         $('#plot_section').show();
                         $('#ratio_section').show();
+                        // Table section is shown/hidden by updateSavedLinesTable()
                         
                         alert(`Intensity calculated and saved as "${lineName}"`);
                         console.log('Intensity saved:', lineName, savedIntensities[lineName]);
@@ -379,6 +399,38 @@
                 select.append(option);
                 ratioSelect1.append(option);
                 ratioSelect2.append(option);
+            }
+        }
+        
+        function updateSavedLinesTable() {
+            const tableBody = $('#saved_lines_table_body');
+            const tableSection = $('#saved_lines_table_section');
+            
+            // Clear existing rows
+            tableBody.empty();
+            
+            // Check if there are any saved lines
+            const lineNames = Object.keys(savedIntensities);
+            if (lineNames.length === 0) {
+                tableSection.hide();
+                return;
+            }
+            
+            // Show table section
+            tableSection.show();
+            
+            // Add rows for each saved line
+            for (const lineName of lineNames.sort()) {
+                const lineData = savedIntensities[lineName];
+                const a1_w = lineData.a1_w !== null && lineData.a1_w !== undefined 
+                    ? lineData.a1_w.toFixed(3) 
+                    : 'N/A';
+                
+                const row = `<tr style="border-bottom: 1px solid #ddd;">
+                    <td style="padding: 8px; border: 1px solid #ccc;">${lineName}</td>
+                    <td style="padding: 8px; border: 1px solid #ccc;">${a1_w}</td>
+                </tr>`;
+                tableBody.append(row);
             }
         }
         
@@ -957,7 +1009,7 @@
         }
 
         // File browser variables
-        let currentBrowsePath = '/';
+        let currentBrowsePath = '/home/LIBS/prochazka/data/Running_projects/';
         
         function toggleFileBrowser() {
             const browser = $('#file_browser');
@@ -965,7 +1017,7 @@
                 browser.hide();
             } else {
                 browser.show();
-                browseDirectory('/');
+                browseDirectory('/home/LIBS/prochazka/data/Running_projects/');
             }
         }
         

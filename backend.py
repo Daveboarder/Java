@@ -330,6 +330,15 @@ def calculate_intensity():
                 intensity = simple_voigt_fit(data, wavelength, b1_w, b2_w)
                 return jsonify({'success': False, 'error': 'Invalid method'}), 400
             
+            # Calculate central wavelength (a1_w) - peak position in the wavelength range
+            b1_idx = np.argmin(np.abs(wavelength - b1_w))
+            b2_idx = np.argmin(np.abs(wavelength - b2_w))
+            # Use average spectrum to find peak
+            avg_spectrum = np.mean(data[:, b1_idx:b2_idx], axis=0)
+            peak_idx = np.argmax(avg_spectrum)
+            a1_idx = b1_idx + peak_idx
+            a1_w = float(wavelength[a1_idx])
+            
             return jsonify({
                 'success': True,
                 'intensity': intensity.tolist(),
@@ -338,7 +347,8 @@ def calculate_intensity():
                 'x_len': x_len.tolist(),
                 'y_len': y_len.tolist(),
                 'x_step': x_step.tolist(),
-                'y_step': y_step.tolist()
+                'y_step': y_step.tolist(),
+                'a1_w': a1_w
             })
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
