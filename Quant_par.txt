@@ -1,4 +1,4 @@
-"Elem_name"	"ion.state"	"Wl"	"Ei"	"Ek"	"Ak"	"gi"	"gk"
+"Elem_name"	"ion_state"	"Wl"	"Ei"	"Ek"	"Ak"	"gi"	"gk"
 "Al"	"II"	153.983	7.420705	15.4725	6.7e+08	3	5
 "Al"	"II"	162.563	7.420705	15.0475561	1.31e+08	3	1
 "Al"	"II"	167.079	0	7.420705	1.41e+09	1	3

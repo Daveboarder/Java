@@ -1,4 +1,4 @@
-from LIBSmethods import voigt, triangular_function
+from LIBSmethods import voigt, triangular_function, partition_function
 import numpy as np
 import h5py
 import matplotlib.pyplot as plt
@@ -63,7 +63,9 @@ with h5py.File(file_path, 'r') as file:
         print("RuntimeError: Failed to fit voigt function")
         test_popt = [x0, np.max(data_slice[selected_spectrum,:]), gamma, sigma]
         
-    
+    U_I, U_II = partition_function('C', 10000)
+    print(f"U_I: {U_I}")
+    print(f"U_II: {U_II}")
     test_real_fit = voigt(x, *test_popt)    #test the fit on a single spectrum
     #correlation coefficient between max_data and real_fit from pcov
     std = np.sqrt(np.diag(pcov))
