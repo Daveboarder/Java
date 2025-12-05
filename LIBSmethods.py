@@ -6,8 +6,10 @@ from scipy.optimize import curve_fit
 import pandas as pd
 import sqlite3
 
-PARTITION_FUNCTION_PATH = "/home/LIBS/prochazka/data/Running_projects/24_0057_LIBSdata_processing/Methods/Mapping/Java/PartF_var.db"
-EION_PATH = "/home/LIBS/prochazka/data/Running_projects/24_0057_LIBSdata_processing/Methods/Mapping/Java/E_ion.db"
+# Single database file containing all tables
+DATABASE_PATH = "/home/LIBS/prochazka/data/Running_projects/24_0057_LIBSdata_processing/Methods/Mapping/Java/LIBS_data.db"
+PARTITION_FUNCTION_PATH = DATABASE_PATH  # For backward compatibility
+EION_PATH = DATABASE_PATH  # For backward compatibility
 
 def snv(data):
     """

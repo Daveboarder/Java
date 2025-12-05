@@ -43,22 +43,20 @@ file_path = '/home/LIBS/prochazka/data/Running_projects/25_0069_3D_chemical_imag
 with h5py.File(file_path, 'r') as file:
     wavelength = file['measurements/Measurement_1/libs/calibration'][:]
 
-element = 'Ca'
+element = 'Li'
 
-conn = sqlite3.connect('/home/LIBS/prochazka/data/Running_projects/24_0057_LIBSdata_processing/Methods/Mapping/Java/QuantParam.db')
-cursor = conn.cursor()  
-# Get the partition function for the element elem
-cursor.execute("SELECT Elem_name, ion_state, Wavelength, Ei, Ek, gi, gk, Ak FROM QuantParam WHERE Elem_name = ?", (element,))
-QuantParam = pd.DataFrame(cursor.fetchall(), columns=['Elem_name', 'ion_state', 'Wavelength', 'Ei', 'Ek', 'gi', 'gk', 'Ak'])
-conn.commit()
-conn.close()
+# Single database file containing all tables
+DATABASE_PATH = '/home/LIBS/prochazka/data/Running_projects/24_0057_LIBSdata_processing/Methods/Mapping/Java/LIBS_data.db'
 
-conn = sqlite3.connect('/home/LIBS/prochazka/data/Running_projects/24_0057_LIBSdata_processing/Methods/Mapping/Java/E_ion.db')
-cursor = conn.cursor()
-cursor.execute("SELECT Eion FROM E_ion WHERE Elem_name = ?", (element+'+I',))
-E_ion = cursor.fetchall()[0][0]
-conn.commit()
-conn.close()
+# Use context manager to ensure connection is always closed
+with sqlite3.connect(DATABASE_PATH) as conn:
+    cursor = conn.cursor()  
+    # Get the partition function for the element elem
+    cursor.execute("SELECT Elem_name, ion_state, Wavelength, Ei, Ek, gi, gk, Ak FROM QuantParam WHERE Elem_name = ?", (element,))
+    QuantParam = pd.DataFrame(cursor.fetchall(), columns=['Elem_name', 'ion_state', 'Wavelength', 'Ei', 'Ek', 'gi', 'gk', 'Ak'])
+    
+    cursor.execute("SELECT Eion FROM E_ion WHERE Elem_name = ?", (element+'+I',))
+    E_ion = cursor.fetchall()[0][0]
 
 print(f"Eion: {E_ion}")
 
