@@ -15,6 +15,14 @@ from LIBSmethods import peak_intensity, voigt_fit, simple_sum, simple_voigt_fit,
 import os
 from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans
+from SpectraGenerator import create_spectra
+import pandas as pd
+import sqlite3
+import csv
+import matplotlib.pyplot as plt
+import plotly.graph_objects as go
+import plotly.express as px
+import os
 
 app = Flask(__name__)
 CORS(app)  # Allow cross-origin requests if needed
@@ -362,7 +370,7 @@ def plot_spectrum():
         max_data = request.json['max_data']
         title = request.json.get('title', 'Maximum Intensity Spectrum')
         
-        # Create interactive Plotly figure
+        # Create interactive Plotly figure and add trace for syntetic spectra
         fig = go.Figure()
         fig.add_trace(go.Scatter(
             x=wavelength,
@@ -371,7 +379,7 @@ def plot_spectrum():
             line=dict(color='blue', width=1.5),
             name='Max Intensity'
         ))
-        
+
         fig.update_layout(
             title=title,
             xaxis_title='Wavelength (nm)',
@@ -538,6 +546,58 @@ def browse_files():
             'parent_path': os.path.dirname(path) if path != '/' else None
         })
     except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/plot_syntetic_spectra', methods=['POST'])
+def plot_syntetic_spectra():
+    """Plot syntetic spectra for a given element"""
+    try:
+        element = request.json['element']
+        wavelength = request.json['wavelength']
+        max_data = request.json.get('max_data')  # Optional - for scaling
+        
+        # Generate synthetic spectra
+        syntetic_spectra = create_spectra(element, wavelength, Te=12705, Ne=1.79e+18, N=1e-4, C=1, l=1.4e-04)
+        
+        # Scale synthetic spectra to match max_data if provided
+        if max_data is not None and len(max_data) > 0:
+            max_data_array = np.array(max_data, dtype=np.float64)
+            syntetic_spectra_array = np.array(syntetic_spectra, dtype=np.float64)
+            
+            max_data_max = np.max(max_data_array)
+            syntetic_max = np.max(syntetic_spectra_array)
+            
+            print(f"Scaling info - max_data max: {max_data_max}, syntetic max: {syntetic_max}")
+            print(f"max_data type: {type(max_data)}, length: {len(max_data) if hasattr(max_data, '__len__') else 'N/A'}")
+            print(f"syntetic_spectra shape: {syntetic_spectra_array.shape}, dtype: {syntetic_spectra_array.dtype}")
+            
+            # Check for valid values
+            if np.isfinite(syntetic_max) and np.isfinite(max_data_max) and syntetic_max > 0 and max_data_max > 0:
+                scaler = max_data_max / syntetic_max
+                syntetic_spectra_scaled = syntetic_spectra_array * scaler
+                syntetic_spectra = syntetic_spectra_scaled.tolist()
+                print(f"Scaler applied: {scaler}, new syntetic max: {np.max(syntetic_spectra_scaled)}")
+            else:
+                print(f"Warning: Cannot scale - syntetic_max={syntetic_max} (finite: {np.isfinite(syntetic_max)}), max_data_max={max_data_max} (finite: {np.isfinite(max_data_max)})")
+                # Convert to list if not already
+                if not isinstance(syntetic_spectra, list):
+                    syntetic_spectra = syntetic_spectra.tolist()
+        else:
+            print(f"No max_data provided (max_data is None: {max_data is None}, length: {len(max_data) if max_data is not None else 'N/A'}), returning unscaled synthetic spectra")
+            # Convert to list if not already
+            if not isinstance(syntetic_spectra, list):
+                syntetic_spectra = syntetic_spectra.tolist()
+        
+        return jsonify({
+            'success': True,
+            'syntetic_spectra': syntetic_spectra
+        })
+    except KeyError as e:
+        return jsonify({'success': False, 'error': f'Missing required parameter: {str(e)}'}), 400
+    except Exception as e:
+        import traceback
+        error_msg = f"{str(e)}\n{traceback.format_exc()}"
+        print(f"Error in plot_syntetic_spectra: {error_msg}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/calculate_kmeans', methods=['POST'])

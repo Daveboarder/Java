@@ -43,9 +43,34 @@ file_path = '/home/LIBS/prochazka/data/Running_projects/25_0069_3D_chemical_imag
 with h5py.File(file_path, 'r') as file:
     wavelength = file['measurements/Measurement_1/libs/calibration'][:]
 
-element = 'Er'
+element = 'Li'
 
-def create_spectra(element, Te, Ne, N, C, l):
+def create_spectra(element, wavelength, Te=12705, Ne=1.79e+18, N=1e-4, C=1, l=1.4e-04):
+    """
+    Generate synthetic optical emission spectra for a given element.
+    
+    Parameters:
+    -----------
+    element : str
+        Element symbol (e.g., 'Li', 'Cu')
+    wavelength : array-like
+        Wavelength array (in nm) where the spectrum will be evaluated
+    Te : float
+        Temperature in Kelvin (default: 12705)
+    Ne : float
+        Electron density in cm^-3 (default: 1.79e+18)
+    N : float
+        Number density in cm^-3 (default: 1e-4)
+    C : float
+        Content of element (default: 1 ~ 100%)
+    l : float
+        Optical path length in cm (default: 1.4e-04)
+    
+    Returns:
+    --------
+    Ifin_voigt : numpy array
+        Synthetic spectrum intensity as a function of wavelength
+    """
     # Single database file containing all tables
     DATABASE_PATH = '/home/LIBS/prochazka/data/Running_projects/24_0057_LIBSdata_processing/Methods/Mapping/Java/LIBS_data.db'
 
@@ -55,11 +80,11 @@ def create_spectra(element, Te, Ne, N, C, l):
         # Get the partition function for the element elem
         cursor.execute("SELECT Elem_name, ion_state, Wavelength, Ei, Ek, gi, gk, Ak FROM QuantParam WHERE Elem_name = ?", (element,))
         QuantParam = pd.DataFrame(cursor.fetchall(), columns=['Elem_name', 'ion_state', 'Wavelength', 'Ei', 'Ek', 'gi', 'gk', 'Ak'])
+        print(f"QuantParam: {QuantParam.head()}")
         
         cursor.execute("SELECT Eion FROM E_ion WHERE Elem_name = ?", (element+'+I',))
         E_ion = cursor.fetchall()[0][0]
-# Single database file containing all tables
-
+        print(f"E_ion: {E_ion}")
 
     PF_I, PF_II = partition_function(element, Te)
     S10 = (((2*PF_II)/(Ne*PF_I))*((me*kb*Te)/((h**2)/(2*np.pi)))**(1.5))*np.exp(-(E_ion*1.60217e-12)/(kb*Te)) if not QuantParam.empty else 1
@@ -87,11 +112,11 @@ def create_spectra(element, Te, Ne, N, C, l):
 
     return Ifin_voigt
 
-Ifin_voigt = create_spectra(element, Te, Ne, N, C, l)
-#Plot Ifin_voigt as a function of wavelength
-plt.plot(wavelength, Ifin_voigt)
-plt.xlabel('Wavelength (nm)')
-plt.ylabel('Intensity (a.u.)')
-plt.title('Spectrum')
-plt.savefig('SpectraGenerator.png')
-plt.close()
+Ifin_voigt = create_spectra(element, wavelength, Te, Ne, N, C, l)
+#Plot Ifin_voigt as a function of wavelength using plotly
+import plotly.graph_objects as go
+fig = go.Figure()
+fig.add_trace(go.Scatter(x=wavelength, y=Ifin_voigt, mode='lines', name=f'Spectrum: {element}'))
+fig.update_layout(title=f'Spectrum: {element}', xaxis_title='Wavelength (nm)', yaxis_title='Intensity (a.u.)')
+fig.write_html('SpectraGenerator.html')
+print("Plot saved to SpectraGenerator.html")

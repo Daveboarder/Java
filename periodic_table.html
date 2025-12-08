@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Interactive Periodic Table</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -65,6 +67,19 @@
             transform: scale(1.1);
             z-index: 10;
             box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        .element.selected {
+            transform: scale(1.15);
+            z-index: 11;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+            border: 3px solid #ffd700;
+        }
+
+        .element.selected:hover {
+            transform: scale(1.15);
+            z-index: 11;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.5);
         }
 
         .element:active {
@@ -214,6 +229,111 @@
             font-size: 0.85em;
         }
 
+        /* File loading and spectrum styles */
+        .file-loading-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .file-input-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .file-input-group input {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 0.9em;
+        }
+
+        .file-input-group button {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: background 0.3s ease;
+        }
+
+        .file-input-group button:hover {
+            opacity: 0.9;
+        }
+
+        .btn-load {
+            background: #20b960;
+            color: white;
+        }
+
+        .btn-browse {
+            background: #2c2f31;
+            color: white;
+        }
+
+        .file-browser {
+            display: none;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            background: #f9f9f9;
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+
+        .file-browser-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .file-browser-path {
+            margin-bottom: 10px;
+            padding: 5px;
+            background: white;
+            border: 1px solid #ccc;
+            font-family: monospace;
+            word-break: break-all;
+            font-size: 0.85em;
+        }
+
+        .file-browser-content {
+            background: white;
+            border: 1px solid #ccc;
+            padding: 10px;
+            min-height: 200px;
+        }
+
+        .spectrum-section {
+            margin-top: 30px;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            display: none;
+        }
+
+        .plot-container {
+            margin: 20px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            min-height: 400px;
+            width: 100%;
+        }
+
+        .info-text {
+            color: #666;
+            font-size: 0.9em;
+            font-style: italic;
+            margin-top: 5px;
+        }
+
         @media (max-width: 1200px) {
             .element {
                 font-size: 0.5em;
@@ -224,6 +344,28 @@
 <body>
     <div class="container">
         <h1>LIBS Interactive Periodic Table</h1>
+        
+        <!-- File Loading Section -->
+        <div class="file-loading-section">
+            <div class="file-input-group">
+                <input type="text" id="file_path" placeholder="File path on server" />
+                <button class="btn-load" onclick="loadFile()">Load File</button>
+                <button class="btn-browse" onclick="toggleFileBrowser()">Browse Files</button>
+            </div>
+            
+            <!-- File Browser -->
+            <div id="file_browser" class="file-browser">
+                <div class="file-browser-header">
+                    <h3 style="margin: 0;">File Browser</h3>
+                    <button onclick="toggleFileBrowser()" style="padding: 3px 10px;">Close</button>
+                </div>
+                <div id="browser_path" class="file-browser-path">Loading...</div>
+                <div id="browser_navigation" style="margin-bottom: 10px;">
+                    <button onclick="browseUp()" id="up_button" style="padding: 5px 10px; display: none;">↑ Up</button>
+                </div>
+                <div id="browser_content" class="file-browser-content">Loading...</div>
+            </div>
+        </div>
         
         <div class="legend">
             <div class="legend-item">
@@ -274,6 +416,13 @@
                 <p>Move your mouse over any element to see its details</p>
             </div>
             <div class="periodic-table" id="periodicTable"></div>
+        </div>
+        
+        <!-- Spectrum Plot Section -->
+        <div id="spectrum_section" class="spectrum-section">
+            <h2>Maximum Intensity Spectrum</h2>
+            <p class="info-text">Click on the plot to select wavelengths</p>
+            <div id="spectrum_plot" class="plot-container"></div>
         </div>
     </div>
 
@@ -460,6 +609,9 @@
                         <div class="atomic-mass">${el.mass}</div>
                     `;
                     button.onmouseover = () => showElementInfo(el);
+                    button.onclick = () => selectElement(el, button);
+                    // Store element symbol as data attribute for easy access
+                    button.setAttribute('data-symbol', el.symbol);
                 } else {
                     button.className = 'element empty';
                 }
@@ -507,6 +659,434 @@
 
         // Initialize table on page load
         createPeriodicTable();
+    </script>
+
+    <!-- File loading and spectrum visualization functionality -->
+    <script>
+        // Ensure functions are in global scope
+        window.SERVER_URL = 'http://localhost:5000';
+        window.spectrumData = null;
+        window.currentBrowsePath = '/home/LIBS/prochazka/data/Running_projects/';
+        window.selectedElements = new Map(); // Map of elementSymbol -> {element, button, traceIndex}
+        window.currentWavelength = null;
+        window.currentMaxData = null;
+        window.plotlyFigure = null; // Store Plotly figure reference
+
+        // Wait for DOM and jQuery to be ready
+        $(document).ready(function() {
+            console.log('File loading functions initialized');
+        });
+
+        window.loadFile = function() {
+            const filePath = $('#file_path').val();
+            if (!filePath || !filePath.trim()) {
+                alert('Please enter a file path or browse for a file.');
+                return;
+            }
+
+            $.ajax({
+                url: window.SERVER_URL + '/api/load_file',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({file_path: filePath.trim()}),
+                success: function(data) {
+                    if (data.success) {
+                        console.log('File loaded successfully', data);
+                        window.spectrumData = data;
+                        window.currentWavelength = data.wavelength;
+                        window.currentMaxData = data.max_data;
+                        
+                        // Validate data was stored
+                        console.log('Stored wavelength length:', window.currentWavelength ? window.currentWavelength.length : 'undefined');
+                        console.log('Stored max_data length:', window.currentMaxData ? window.currentMaxData.length : 'undefined');
+                        console.log('Stored max_data type:', typeof window.currentMaxData);
+                        console.log('Stored max_data is array:', Array.isArray(window.currentMaxData));
+                        
+                        // Plot the spectrum with Plotly
+                        plotSpectrum(data.wavelength, data.max_data, null);
+                    } else {
+                        console.error('Error:', data.error);
+                        alert('Error: ' + data.error);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Request failed:', error);
+                    console.error('Response:', xhr.responseText);
+                    alert('Failed to load file: ' + error + '. Make sure the backend server is running on ' + window.SERVER_URL);
+                }
+            });
+        };
+
+        window.toggleFileBrowser = function() {
+            const browser = $('#file_browser');
+            if (browser.is(':visible')) {
+                browser.hide();
+            } else {
+                browser.show();
+                window.browseDirectory('/home/LIBS/prochazka/data/Running_projects/');
+            }
+        };
+
+        window.browseDirectory = function(path) {
+            window.currentBrowsePath = path;
+            $('#browser_content').html('Loading...');
+            
+            $.ajax({
+                url: window.SERVER_URL + '/api/browse_files',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({path: path}),
+                success: function(response) {
+                    if (response.success) {
+                        window.displayDirectory(response);
+                    } else {
+                        $('#browser_content').html('<p style="color: red;">Error: ' + response.error + '</p>');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Browse directory failed:', error);
+                    console.error('Response:', xhr.responseText);
+                    $('#browser_content').html('<p style="color: red;">Failed to browse directory: ' + error + '. Make sure the backend server is running on ' + window.SERVER_URL + '</p>');
+                }
+            });
+        };
+
+        window.displayDirectory = function(data) {
+            // Update path display
+            $('#browser_path').text(data.current_path);
+            
+            // Show/hide up button
+            if (data.parent_path) {
+                $('#up_button').show().off('click').on('click', function() {
+                    window.browseDirectory(data.parent_path);
+                });
+            } else {
+                $('#up_button').hide();
+            }
+            
+            // Display items
+            let html = '<table style="width: 100%; border-collapse: collapse;">';
+            html += '<tr style="background: #f0f0f0;"><th style="padding: 8px; text-align: left;">Name</th><th style="padding: 8px; text-align: left;">Type</th><th style="padding: 8px; text-align: right;">Size</th></tr>';
+            
+            // Show directories first
+            if (data.items && data.items.length > 0) {
+                data.items.forEach(function(item) {
+                    if (item.is_directory) {
+                        // Escape single quotes in path
+                        const safePath = item.path.replace(/'/g, "\\'");
+                        html += `<tr style="cursor: pointer; border-bottom: 1px solid #eee;" onclick="window.browseDirectory('${safePath}')">`;
+                        html += `<td style="padding: 8px;"><strong>📁 ${item.name}</strong></td>`;
+                        html += `<td style="padding: 8px;">Directory</td>`;
+                        html += `<td style="padding: 8px; text-align: right;">-</td>`;
+                        html += '</tr>';
+                    }
+                });
+                
+                // Then show files
+                data.items.forEach(function(item) {
+                    if (!item.is_directory) {
+                        const isH5File = item.name.toLowerCase().endsWith('.h5');
+                        // Escape single quotes in path
+                        const safePath = item.path.replace(/'/g, "\\'");
+                        const clickAction = isH5File ? `window.selectFile('${safePath}')` : '';
+                        const rowStyle = isH5File ? 'cursor: pointer; background: #e8f5e9;' : 'cursor: default;';
+                        html += `<tr style="${rowStyle} border-bottom: 1px solid #eee;" ${clickAction ? `onclick="${clickAction}"` : ''}>`;
+                        html += `<td style="padding: 8px;">${isH5File ? '📄' : '📄'} ${item.name}</td>`;
+                        html += `<td style="padding: 8px;">File</td>`;
+                        html += `<td style="padding: 8px; text-align: right;">${window.formatFileSize(item.size)}</td>`;
+                        html += '</tr>';
+                    }
+                });
+            } else {
+                html += '<tr><td colspan="3" style="padding: 20px; text-align: center;">No items found</td></tr>';
+            }
+            
+            html += '</table>';
+            $('#browser_content').html(html);
+        };
+
+        window.selectFile = function(filePath) {
+            $('#file_path').val(filePath);
+            $('#file_browser').hide();
+            alert('File selected: ' + filePath);
+        };
+
+        window.browseUp = function() {
+            // Handled in displayDirectory function
+        };
+
+        window.formatFileSize = function(bytes) {
+            if (!bytes) return '-';
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+        };
+
+        // Element selection and synthetic spectra plotting
+        window.selectElement = function(element, button) {
+            const elementSymbol = element.symbol;
+            
+            // Check if element is already selected
+            if (window.selectedElements.has(elementSymbol)) {
+                // Deselect: remove highlight and remove trace
+                button.classList.remove('selected');
+                removeSyntheticSpectra(elementSymbol);
+                // Note: removeSyntheticSpectra already removes from selectedElements
+            } else {
+                // Select: add highlight and add trace
+                button.classList.add('selected');
+                
+                // If spectrum data is loaded, plot synthetic spectra
+                if (window.currentWavelength && window.currentMaxData) {
+                    plotSyntheticSpectra(element.symbol, element, button);
+                } else {
+                    alert('Please load a file first to view synthetic spectra.');
+                    button.classList.remove('selected');
+                }
+            }
+        };
+
+        window.plotSyntheticSpectra = function(elementSymbol, element, button) {
+            if (!window.currentWavelength || !window.currentMaxData) {
+                console.error('No spectrum data available');
+                console.error('currentWavelength:', window.currentWavelength);
+                console.error('currentMaxData:', window.currentMaxData);
+                alert('Please load a file first to view synthetic spectra.');
+                return;
+            }
+
+            // Validate data
+            console.log('Plotting synthetic spectrum for:', elementSymbol);
+            console.log('Wavelength length:', window.currentWavelength ? window.currentWavelength.length : 'undefined');
+            console.log('Max data length:', window.currentMaxData ? window.currentMaxData.length : 'undefined');
+            console.log('Max data type:', typeof window.currentMaxData);
+            console.log('Max data sample:', window.currentMaxData ? window.currentMaxData.slice(0, 5) : 'undefined');
+
+            // Check if plot exists - don't replace it with loading indicator if it does
+            const plotDiv = document.getElementById('spectrum_plot');
+            const plotExists = plotDiv && plotDiv.data && plotDiv.data.length > 0;
+            
+            // Show loading indicator only if plot doesn't exist yet
+            if (!plotExists && plotDiv) {
+                plotDiv.innerHTML = '<p style="text-align: center; padding: 50px;">Loading synthetic spectrum for ' + elementSymbol + '...</p>';
+            }
+
+            // Prepare request data - ensure arrays are properly formatted
+            const requestData = {
+                element: elementSymbol,
+                wavelength: Array.isArray(window.currentWavelength) ? window.currentWavelength : (window.currentWavelength || []),
+                max_data: Array.isArray(window.currentMaxData) ? window.currentMaxData : (window.currentMaxData || [])
+            };
+            
+            // Final validation before sending
+            if (!requestData.max_data || requestData.max_data.length === 0) {
+                console.error('max_data is empty or invalid:', requestData.max_data);
+                alert('Error: Maximum intensity data is not available. Please reload the file.');
+                return;
+            }
+            
+            console.log('Sending request with data:', {
+                element: requestData.element,
+                wavelength_length: requestData.wavelength ? requestData.wavelength.length : 'undefined',
+                max_data_length: requestData.max_data ? requestData.max_data.length : 'undefined',
+                max_data_is_array: Array.isArray(requestData.max_data),
+                max_data_first_values: requestData.max_data ? requestData.max_data.slice(0, 3) : 'undefined'
+            });
+
+            $.ajax({
+                url: window.SERVER_URL + '/api/plot_syntetic_spectra',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(requestData),
+                success: function(response) {
+                    console.log('Response received:', response);
+                    if (response.success && response.syntetic_spectra) {
+                        // Add synthetic spectrum trace to existing plot
+                        addSyntheticSpectraTrace(elementSymbol, response.syntetic_spectra);
+                        // Store the selection (element and button are in closure scope)
+                        if (element && button) {
+                            window.selectedElements.set(elementSymbol, {
+                                element: element,
+                                button: button,
+                                spectra: response.syntetic_spectra
+                            });
+                        }
+                    } else {
+                        console.error('Response indicates failure:', response);
+                        alert('Failed to generate synthetic spectrum: ' + (response.error || 'Unknown error'));
+                        // Remove selection if failed
+                        if (button) {
+                            button.classList.remove('selected');
+                        } else {
+                            const btn = document.querySelector(`[data-symbol="${elementSymbol}"]`);
+                            if (btn) btn.classList.remove('selected');
+                        }
+                        // Restore plot if it was replaced by loading indicator
+                        if (!plotExists && window.currentWavelength && window.currentMaxData) {
+                            plotSpectrum(window.currentWavelength, window.currentMaxData, null);
+                        }
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Synthetic spectrum AJAX failed:', error);
+                    console.error('Status:', status);
+                    console.error('Response:', xhr.responseText);
+                    alert('Failed to generate synthetic spectrum: ' + error);
+                    // Remove selection if failed
+                    if (button) {
+                        button.classList.remove('selected');
+                    } else {
+                        const btn = document.querySelector(`[data-symbol="${elementSymbol}"]`);
+                        if (btn) btn.classList.remove('selected');
+                    }
+                    // Restore plot if it was replaced by loading indicator
+                    if (!plotExists && window.currentWavelength && window.currentMaxData) {
+                        plotSpectrum(window.currentWavelength, window.currentMaxData, null);
+                    }
+                }
+            });
+        };
+
+        window.plotSpectrum = function(wavelength, maxData, syntheticSpectra, elementSymbol) {
+            const traces = [];
+            
+            // Add max intensity trace (always first)
+            traces.push({
+                x: wavelength,
+                y: maxData,
+                mode: 'lines',
+                line: {color: 'blue', width: 1.5},
+                name: 'Max Intensity'
+            });
+            
+            // Add all currently selected synthetic spectra traces
+            window.selectedElements.forEach((data, symbol) => {
+                if (data.spectra && data.spectra.length > 0) {
+                    traces.push({
+                        x: wavelength,
+                        y: data.spectra,
+                        mode: 'lines',
+                        line: {color: getColorForElement(symbol), width: 1.5},
+                        name: 'Synthetic: ' + symbol
+                    });
+                }
+            });
+            
+            // Add new synthetic spectrum if provided
+            if (syntheticSpectra && syntheticSpectra.length > 0 && elementSymbol) {
+                traces.push({
+                    x: wavelength,
+                    y: syntheticSpectra,
+                    mode: 'lines',
+                    line: {color: getColorForElement(elementSymbol), width: 1.5},
+                    name: 'Synthetic: ' + elementSymbol
+                });
+            }
+            
+            const selectedCount = window.selectedElements.size;
+            const layout = {
+                title: selectedCount > 0 ? 
+                    `Maximum Intensity Spectrum with ${selectedCount} Synthetic Spectrum(s)` : 
+                    'Maximum Intensity Spectrum - Click elements to add synthetic spectra',
+                xaxis_title: 'Wavelength (nm)',
+                yaxis_title: 'Intensity (a.u.)',
+                hovermode: 'x unified',
+                template: 'plotly_white',
+                height: 500
+            };
+            
+            $('#spectrum_section').show();
+            Plotly.newPlot('spectrum_plot', traces, layout, {responsive: true});
+            // Store reference to plot div
+            window.plotlyFigure = document.getElementById('spectrum_plot');
+        };
+
+        window.addSyntheticSpectraTrace = function(elementSymbol, syntheticSpectra) {
+            const plotDiv = document.getElementById('spectrum_plot');
+            
+            // Check if plot exists and has data
+            const plotExists = plotDiv && plotDiv.data && plotDiv.data.length > 0;
+            
+            if (!plotExists || !window.currentWavelength) {
+                // If plot doesn't exist, create it with all traces
+                plotSpectrum(window.currentWavelength, window.currentMaxData, syntheticSpectra, elementSymbol);
+                return;
+            }
+            
+            // Add new trace to existing plot
+            const newTrace = {
+                x: window.currentWavelength,
+                y: syntheticSpectra,
+                mode: 'lines',
+                line: {color: getColorForElement(elementSymbol), width: 1.5},
+                name: 'Synthetic: ' + elementSymbol
+            };
+            
+            try {
+                Plotly.addTraces('spectrum_plot', newTrace);
+                
+                // Update title
+                const selectedCount = window.selectedElements.size;
+                Plotly.update('spectrum_plot', {}, {
+                    title: `Maximum Intensity Spectrum with ${selectedCount} Synthetic Spectrum(s)`
+                });
+            } catch (error) {
+                console.error('Error adding trace:', error);
+                // If adding trace fails, recreate the entire plot
+                plotSpectrum(window.currentWavelength, window.currentMaxData, syntheticSpectra, elementSymbol);
+            }
+        };
+
+        window.removeSyntheticSpectra = function(elementSymbol) {
+            // Get the stored data before removing
+            const elementData = window.selectedElements.get(elementSymbol);
+            
+            // Remove trace from plot
+            const plotDiv = document.getElementById('spectrum_plot');
+            if (plotDiv && plotDiv.data) {
+                // Find the trace index
+                let traceIndex = -1;
+                for (let i = 0; i < plotDiv.data.length; i++) {
+                    if (plotDiv.data[i].name === 'Synthetic: ' + elementSymbol) {
+                        traceIndex = i;
+                        break;
+                    }
+                }
+                
+                if (traceIndex > 0) {
+                    // Remove the trace (keep trace 0 which is max intensity)
+                    Plotly.deleteTraces('spectrum_plot', traceIndex);
+                    
+                    // Update title
+                    const selectedCount = window.selectedElements.size - 1; // -1 because we're about to remove it
+                    Plotly.update('spectrum_plot', {}, {
+                        title: selectedCount > 0 ? 
+                            `Maximum Intensity Spectrum with ${selectedCount} Synthetic Spectrum(s)` :
+                            'Maximum Intensity Spectrum - Click elements to add synthetic spectra'
+                    });
+                }
+            }
+            
+            // Remove from selected elements map
+            window.selectedElements.delete(elementSymbol);
+        };
+
+        // Color palette for different elements
+        const elementColors = [
+            '#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6',
+            '#1abc9c', '#e67e22', '#34495e', '#e91e63', '#00bcd4',
+            '#4caf50', '#ff9800', '#795548', '#607d8b', '#ff5722'
+        ];
+        let colorIndex = 0;
+        const elementColorMap = new Map();
+
+        window.getColorForElement = function(elementSymbol) {
+            if (!elementColorMap.has(elementSymbol)) {
+                elementColorMap.set(elementSymbol, elementColors[colorIndex % elementColors.length]);
+                colorIndex++;
+            }
+            return elementColorMap.get(elementSymbol);
+        };
     </script>
 </body>
 </html>
