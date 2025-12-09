@@ -29,8 +29,8 @@ with sqlite3.connect(DATABASE_FILE) as conn:
     # Insert data into QuantParam table
     # Note: id is not included in INSERT - SQLite will automatically assign the next number
     print("Processing QuantParam table...")
-    with open('Quant_par_120to1250nm.txt', 'r') as file:
-        reader = csv.DictReader(file, delimiter=';')
+    with open('Quant_par_120to1250nm_2.txt', 'r') as file:
+        reader = csv.DictReader(file, delimiter='\t')
         for row in reader:
             #check if the row already exists
             cursor.execute("SELECT * FROM QuantParam WHERE Elem_name = ? AND ion_state = ? AND Wavelength = ?", (row['Elem_name'], row['ion_state'], row['Wl']))
@@ -53,7 +53,7 @@ with sqlite3.connect(DATABASE_FILE) as conn:
     
     # Insert data into PartF_var table
     print("Processing PartF_var table...")
-    with open('PartF_var.txt', 'r') as file:
+    with open('PartF_var_2.txt', 'r') as file:
         reader = csv.DictReader(file, delimiter='\t')
         for row in reader:
             #check if the row already exists
@@ -76,7 +76,7 @@ with sqlite3.connect(DATABASE_FILE) as conn:
     
     # Insert data into E_ion table
     print("Processing E_ion table...")
-    with open('E_ion_plus.txt', 'r') as file:
+    with open('E_ion_plus_2.txt', 'r') as file:
         reader = csv.DictReader(file, delimiter='\t')
         for row in reader:
             #check if the row already exists
