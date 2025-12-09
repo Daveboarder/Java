@@ -694,16 +694,17 @@
                         console.log('File loaded successfully', data);
                         window.spectrumData = data;
                         window.currentWavelength = data.wavelength;
-                        window.currentMaxData = data.max_data;
+                        // Use background-subtracted data for plotting
+                        window.currentMaxData = data.max_data_subtracted || data.max_data;
                         
                         // Validate data was stored
                         console.log('Stored wavelength length:', window.currentWavelength ? window.currentWavelength.length : 'undefined');
-                        console.log('Stored max_data length:', window.currentMaxData ? window.currentMaxData.length : 'undefined');
-                        console.log('Stored max_data type:', typeof window.currentMaxData);
-                        console.log('Stored max_data is array:', Array.isArray(window.currentMaxData));
+                        console.log('Stored max_data_subtracted length:', window.currentMaxData ? window.currentMaxData.length : 'undefined');
+                        console.log('Stored max_data_subtracted type:', typeof window.currentMaxData);
+                        console.log('Stored max_data_subtracted is array:', Array.isArray(window.currentMaxData));
                         
-                        // Plot the spectrum with Plotly
-                        plotSpectrum(data.wavelength, data.max_data, null);
+                        // Plot the spectrum with Plotly using background-subtracted data
+                        plotSpectrum(data.wavelength, window.currentMaxData, null);
                     } else {
                         console.error('Error:', data.error);
                         alert('Error: ' + data.error);

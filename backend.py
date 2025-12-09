@@ -11,7 +11,7 @@ matplotlib.use('Agg')  # Non-interactive backend
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 import plotly.express as px
-from LIBSmethods import peak_intensity, voigt_fit, simple_sum, simple_voigt_fit, snv
+from LIBSmethods import peak_intensity, voigt_fit, simple_sum, simple_voigt_fit, snv, movingMinimum
 import os
 from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans
@@ -66,11 +66,13 @@ def load_file():
             x_step = file['measurements/Measurement_1/global_metadata/Width Spacing'][:]
             y_step = file['measurements/Measurement_1/global_metadata/Height Spacing'][:]
             max_data = np.max(data, axis=0).tolist()
+            max_data_subtracted = movingMinimum(max_data, m=200, n=50).tolist()
             
             return jsonify({
                 'success': True,
                 'wavelength': wavelength.tolist(),
                 'max_data': max_data,
+                'max_data_subtracted': max_data_subtracted,
                 'x_pos': x_pos.tolist(),
                 'y_pos': y_pos.tolist(),
                 'data_shape': data.shape,
@@ -368,13 +370,15 @@ def plot_spectrum():
     try:
         wavelength = request.json['wavelength']
         max_data = request.json['max_data']
+        # Use background-subtracted data if available, otherwise fall back to max_data
+        max_data_subtracted = request.json.get('max_data_subtracted', max_data)
         title = request.json.get('title', 'Maximum Intensity Spectrum')
         
         # Create interactive Plotly figure and add trace for syntetic spectra
         fig = go.Figure()
         fig.add_trace(go.Scatter(
             x=wavelength,
-            y=max_data,
+            y=max_data_subtracted,
             mode='lines',
             line=dict(color='blue', width=1.5),
             name='Max Intensity'

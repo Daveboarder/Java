@@ -30,6 +30,66 @@ def snv(data):
     data_snv = (data - data_mean) / data_std
     return data_snv
 
+def movingMinimum(listSpectra, m=200, n=50):
+    """
+    Background subtraction using moving minimum method.
+    
+    This function performs background subtraction by:
+    1. Calculating a moving minimum with window width m
+    2. Calculating a moving average of the minimum with window width n
+    3. Subtracting the smoothed background from the original spectra
+    
+    Parameters:
+    -----------
+    listSpectra : array-like
+        Array of spectral data (1D array)
+    m : int, optional
+        Window width for minimum calculation (default: 200)
+    n : int, optional
+        Window width for averaging (default: 50)
+    
+    Returns:
+    --------
+    numpy.ndarray
+        Background-subtracted spectra (listSpectra - meanBackground)
+    
+    Notes:
+    ------
+    Edge conditions are handled by using available data:
+    - At the beginning: uses data from index 0 to j+(m/2)
+    - At the end: uses data from index j-(m/2) to end
+    - In the middle: uses symmetric window around current point
+    """
+    listSpectra = np.array(listSpectra, dtype=np.float64)
+    length = len(listSpectra)
+    
+    minBackground = np.zeros(length, dtype=np.float64)
+    meanBackground = np.zeros(length, dtype=np.float64)
+    
+    # Calculate moving minimum
+    m_half = int(m / 2)
+    for j in range(length):
+        if j <= m_half:  # Edge condition at the beginning
+            minPoint = np.min(listSpectra[0:j + m_half + 1])
+        elif j > (length - m_half - 1):  # Edge condition at the end
+            minPoint = np.min(listSpectra[j - m_half:length])
+        else:  # Middle condition
+            minPoint = np.min(listSpectra[j - m_half:j + m_half + 1])
+        minBackground[j] = minPoint
+    
+    # Calculate moving average of minimum
+    n_half = int(n / 2)
+    for k in range(length):
+        if k <= n_half:  # Edge condition at the beginning
+            meanPoint = np.mean(minBackground[0:k + n_half + 1])
+        elif k > (length - n_half - 1):  # Edge condition at the end
+            meanPoint = np.mean(minBackground[k - n_half:length])
+        else:  # Middle condition
+            meanPoint = np.mean(minBackground[k - n_half:k + n_half + 1])
+        meanBackground[k] = meanPoint
+    
+    return (listSpectra - meanBackground)
+
 def triangular_function(b1,a1,b2):
     left = np.linspace(0, 1, a1-b1)
     right = np.linspace(1, 0, b2-a1)

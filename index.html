@@ -238,6 +238,7 @@
                             data: JSON.stringify({
                                 wavelength: data.wavelength,
                                 max_data: data.max_data,
+                                max_data_subtracted: data.max_data_subtracted || data.max_data,
                                 title: 'Maximum Intensity Spectrum - Click to select wavelengths'
                             }),
                             success: function(response) {
