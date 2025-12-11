@@ -14,7 +14,7 @@ import plotly.express as px
 from LIBSmethods import peak_intensity, voigt_fit, simple_sum, simple_voigt_fit, snv, movingMinimum
 import os
 from sklearn.decomposition import PCA
-from sklearn.cluster import KMeans
+from sklearn.cluster import KMeans, MeanShift, estimate_bandwidth
 from SpectraGenerator import create_spectra
 import pandas as pd
 import sqlite3
@@ -66,7 +66,7 @@ def load_file():
             x_step = file['measurements/Measurement_1/global_metadata/Width Spacing'][:]
             y_step = file['measurements/Measurement_1/global_metadata/Height Spacing'][:]
             max_data = np.max(data, axis=0).tolist()
-            max_data_subtracted = movingMinimum(max_data, m=200, n=50).tolist()
+            max_data_subtracted = movingMinimum(max_data, m=50, n=50).tolist()
             
             return jsonify({
                 'success': True,
@@ -110,10 +110,23 @@ def calculate_pca():
             pcaModel = PCA(n_components=5).fit(data_snv)
             # Transform data to get scores (PC values for each sample)
             pca_scores = pcaModel.transform(data_snv)
-            #k-means clustering for the pca model
-            kmeans = KMeans(n_clusters=3, random_state=42) #random state for reproducibility
-            cluster = kmeans.fit_predict(pca_scores[:,[0,1]])
-            print(f"cluster: {cluster}")
+            
+            # Get clustering method from request (default to 'kmeans' for backward compatibility)
+            clustering_method = request.json.get('clustering_method', 'kmeans')
+            
+            # Apply clustering based on selected method
+            if clustering_method == 'meanshift':
+                # Mean Shift clustering - prefers density
+                # Estimate bandwidth automatically
+                bandwidth = estimate_bandwidth(pca_scores[:,[0,1]], quantile=0.2, n_samples=min(500, len(pca_scores)))
+                meanshift = MeanShift(bandwidth=bandwidth, bin_seeding=True)
+                cluster = meanshift.fit_predict(pca_scores[:,[0,1]])
+                print(f"Mean Shift clustering: {cluster}, bandwidth: {bandwidth}, n_clusters: {len(np.unique(cluster))}")
+            else:
+                # Default to k-means clustering
+                kmeans = KMeans(n_clusters=3, random_state=42) #random state for reproducibility
+                cluster = kmeans.fit_predict(pca_scores[:,[0,1]])
+                print(f"K-means clustering: {cluster}")
             
             # Calculate k-means scree plot data (inertia for 1-10 clusters)
             # Use PCA scores for k-means clustering
@@ -147,7 +160,8 @@ def calculate_pca():
                 'explained_variance_PC3': float(explained_variance[2]),
                 'kmeans_labels': cluster.tolist(),
                 'kmeans_n_clusters': n_clusters_range,  # [1, 2, 3, ..., 10]
-                'kmeans_inertias': inertias  # Inertia values for each n_clusters
+                'kmeans_inertias': inertias,  # Inertia values for each n_clusters
+                'clustering_method': clustering_method  # Return the method used
             })
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -270,8 +284,12 @@ def plot_kmeans_map():
                 showlegend=True
             ))
         
+        # Determine title based on clustering method if provided
+        clustering_method = request.json.get('clustering_method', 'kmeans')
+        title = 'Mean Shift Cluster Map' if clustering_method == 'meanshift' else 'K-Means Cluster Map'
+        
         fig.update_layout(
-            title='K-Means Cluster Map',
+            title=title,
             xaxis_title='X Position (mm)',
             yaxis_title='Y Position (mm)',
             template='plotly_white',       
@@ -568,8 +586,9 @@ def plot_syntetic_spectra():
             max_data_array = np.array(max_data, dtype=np.float64)
             syntetic_spectra_array = np.array(syntetic_spectra, dtype=np.float64)
             
-            max_data_max = np.max(max_data_array)
             syntetic_max = np.max(syntetic_spectra_array)
+            max_coeff = np.argmax(syntetic_spectra_array)
+            max_data_max = np.max(max_data_array[(max_coeff-3):(max_coeff+3)])
             
             print(f"Scaling info - max_data max: {max_data_max}, syntetic max: {syntetic_max}")
             print(f"max_data type: {type(max_data)}, length: {len(max_data) if hasattr(max_data, '__len__') else 'N/A'}")
@@ -606,7 +625,7 @@ def plot_syntetic_spectra():
 
 @app.route('/api/calculate_kmeans', methods=['POST'])
 def calculate_kmeans():
-    """Calculate k-means clustering with specified number of clusters"""
+    """Calculate clustering (k-means or Mean Shift) with specified parameters"""
     try:
         # Check if request has JSON data
         if not request.json:
@@ -617,6 +636,7 @@ def calculate_kmeans():
         PC2_scores = request.json.get('PC2_scores')
         PC3_scores = request.json.get('PC3_scores')
         n_clusters = int(request.json.get('n_clusters', 3))
+        clustering_method = request.json.get('clustering_method', 'kmeans')
         
         # Validate that PC scores are provided
         if PC1_scores is None:
@@ -635,14 +655,36 @@ def calculate_kmeans():
         if not (len(PC1_scores) == len(PC2_scores) == len(PC3_scores)):
             return jsonify({'success': False, 'error': 'PC scores arrays must have the same length'}), 400
         
-        kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=30)
-        cluster = kmeans.fit_predict(np.column_stack([PC1_scores, PC2_scores, PC3_scores]))
-        print(f"cluster: {cluster}")
+        # Apply clustering based on selected method
+        if clustering_method == 'meanshift':
+            # Mean Shift clustering - prefers density
+            # Use all 3 PC scores for Mean Shift
+            pca_data = np.column_stack([PC1_scores, PC2_scores, PC3_scores])
+            # Estimate bandwidth automatically
+            bandwidth = estimate_bandwidth(pca_data, quantile=0.2, n_samples=min(500, len(pca_data)))
+            meanshift = MeanShift(bandwidth=bandwidth, bin_seeding=True)
+            cluster = meanshift.fit_predict(pca_data)
+            n_clusters_found = len(np.unique(cluster))
+            print(f"Mean Shift clustering: {cluster}, bandwidth: {bandwidth}, n_clusters: {n_clusters_found}")
             
-        return jsonify({
-            'success': True,
-            'kmeans_labels': cluster.tolist()
-        })
+            return jsonify({
+                'success': True,
+                'kmeans_labels': cluster.tolist(),
+                'clustering_method': 'meanshift',
+                'n_clusters_found': n_clusters_found,
+                'bandwidth': float(bandwidth)
+            })
+        else:
+            # Default to k-means clustering
+            kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=30)
+            cluster = kmeans.fit_predict(np.column_stack([PC1_scores, PC2_scores, PC3_scores]))
+            print(f"K-means clustering: {cluster}")
+            
+            return jsonify({
+                'success': True,
+                'kmeans_labels': cluster.tolist(),
+                'clustering_method': 'kmeans'
+            })
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 

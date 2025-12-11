@@ -165,6 +165,14 @@
     
     <div class="saved-lines" id="pca_section" style="display:none; margin-top: 20px;">
         <h3>PCA Analysis:</h3>
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+            <label>Clustering Method:</label>
+            <select id="pca_clustering_method" style="width: 150px; padding: 5px;">
+                <option value="kmeans">K-Means</option>
+                <option value="meanshift">Mean Shift</option>
+            </select>
+            <span class="info-text" style="margin-left: 10px;">K-Means: specify clusters | Mean Shift: density-based</span>
+        </div>
         <button onclick="calculatePCA()" style="padding: 5px 15px; background: #27ae60; color: white;">Calculate PCA</button>
     </div>
     
@@ -193,14 +201,22 @@
     </div>
     
     <div id="kmeans_map_controls" style="display:none; margin-top: 20px; padding: 15px; background: #f0f0f0; border-radius: 5px;">
-        <h3>K-Means Cluster Map:</h3>
-        <label>Number of Clusters:</label>
-        <input type="number" id="n_clusters_input" min="2" max="20" value="3" style="width: 80px; padding: 5px; margin-left: 10px;">
-        <button onclick="plotKMeansMap()" style="padding: 5px 15px; margin-left: 10px; background: #9b59b6; color: white;">Plot Cluster Map</button>
+        <h3>Cluster Map:</h3>
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap;">
+            <label>Clustering Method:</label>
+            <select id="cluster_map_method" style="width: 150px; padding: 5px;">
+                <option value="kmeans">K-Means</option>
+                <option value="meanshift">Mean Shift</option>
+            </select>
+            <label style="margin-left: 10px;">Number of Clusters:</label>
+            <input type="number" id="n_clusters_input" min="2" max="20" value="3" style="width: 80px; padding: 5px;">
+            <span class="info-text" style="margin-left: 10px;">(Only used for K-Means)</span>
+        </div>
+        <button onclick="plotKMeansMap()" style="padding: 5px 15px; background: #9b59b6; color: white;">Plot Cluster Map</button>
     </div>
     
     <div id="kmeans_map_section" style="display:none;">
-        <h2>K-Means Cluster Map</h2>
+        <h2>Cluster Map</h2>
         <p class="info-text">Spatial distribution of clusters</p>
         <div id="kmeans_map_plot" class="plot-container"></div>
     </div>
@@ -572,12 +588,16 @@
             const pcaSection = $('#pca_section');
             pcaSection.html('<h3>PCA Analysis:</h3><p>Calculating PCA... Please wait.</p>');
             
+            // Get clustering method from UI
+            const clusteringMethod = $('#pca_clustering_method').val() || 'kmeans';
+            
             $.ajax({
                 url: SERVER_URL + '/api/calculate_pca',
                 method: 'POST',
                 contentType: 'application/json',
                 data: JSON.stringify({
-                    file_path: filePath
+                    file_path: filePath,
+                    clustering_method: clusteringMethod
                 }),
                 success: function(data) {
                     if (data.success) {
@@ -881,6 +901,7 @@
         function plotKMeansMap() {
             const filePath = $('#file_path').val();
             const nClusters = parseInt($('#n_clusters_input').val());
+            const clusteringMethod = $('#cluster_map_method').val() || 'kmeans';
             
             if (!filePath || filePath.trim() === '') {
                 alert('Please load a file first.');
@@ -889,7 +910,7 @@
             
             // Check if PCA data is available and has required fields
             if (!pcaData || !pcaData.success) {
-                alert('Please calculate PCA first before plotting k-means map.');
+                alert('Please calculate PCA first before plotting cluster map.');
                 return;
             }
             
@@ -900,9 +921,12 @@
                 return;
             }
             
-            if (isNaN(nClusters) || nClusters < 2 || nClusters > 20) {
-                alert('Please enter a valid number of clusters (2-20).');
-                return;
+            // Validate n_clusters only for k-means
+            if (clusteringMethod === 'kmeans') {
+                if (isNaN(nClusters) || nClusters < 2 || nClusters > 20) {
+                    alert('Please enter a valid number of clusters (2-20) for K-Means.');
+                    return;
+                }
             }
             
             // Show loading
@@ -911,7 +935,7 @@
             button.textContent = 'Calculating...';
             button.disabled = true;
             
-            // Calculate k-means with specified number of clusters
+            // Calculate clustering with specified method
             $.ajax({
                 url: SERVER_URL + '/api/calculate_kmeans',
                 method: 'POST',
@@ -920,11 +944,12 @@
                     PC1_scores: pcaData.PC1_scores,
                     PC2_scores: pcaData.PC2_scores,
                     PC3_scores: pcaData.PC3_scores,
-                    n_clusters: nClusters
+                    n_clusters: nClusters,
+                    clustering_method: clusteringMethod
                 }),
                 success: function(data) {
                     if (data.success) {
-                        // Combine k-means labels with position data from pcaData
+                        // Combine cluster labels with position data from pcaData
                         const kmeansData = {
                             kmeans_labels: data.kmeans_labels,
                             x_pos: pcaData.x_pos,
@@ -933,8 +958,14 @@
                             y_len: pcaData.y_len,
                             x_step: pcaData.x_step,
                             y_step: pcaData.y_step,
-                            n_clusters: nClusters
+                            n_clusters: data.n_clusters_found || nClusters,
+                            clustering_method: data.clustering_method || clusteringMethod
                         };
+                        
+                        // Show info about Mean Shift if used
+                        if (data.clustering_method === 'meanshift' && data.n_clusters_found) {
+                            console.log(`Mean Shift found ${data.n_clusters_found} clusters (bandwidth: ${data.bandwidth?.toFixed(4)})`);
+                        }
                         
                         kmeansMapData = kmeansData;
                         
@@ -944,15 +975,15 @@
                         button.textContent = originalText;
                         button.disabled = false;
                     } else {
-                        alert('Error calculating k-means: ' + data.error);
+                        alert('Error calculating clustering: ' + data.error);
                         button.textContent = originalText;
                         button.disabled = false;
                     }
                 },
                 error: function(xhr, status, error) {
-                    console.error('K-means calculation failed:', error);
+                    console.error('Clustering calculation failed:', error);
                     console.error('Response:', xhr.responseText);
-                    alert('Failed to calculate k-means: ' + error);
+                    alert('Failed to calculate clustering: ' + error);
                     button.textContent = originalText;
                     button.disabled = false;
                 }
@@ -983,7 +1014,8 @@
                     x_len: data.x_len,
                     y_len: data.y_len,
                     x_step: data.x_step,
-                    y_step: data.y_step
+                    y_step: data.y_step,
+                    clustering_method: data.clustering_method || 'kmeans'
                 }),
                 success: function(response) {
                     console.log('Plot response:', response);
