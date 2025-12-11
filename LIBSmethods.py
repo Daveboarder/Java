@@ -168,11 +168,24 @@ def voigt_fit(data, wavelengths, b1_w, b2_w):
     def voigt_fit_wrapper(vector, x, x0, gamma, sigma):
         try:
             popt, _ = curve_fit(voigt, x, vector, p0=[x0, np.max(vector), gamma, sigma])
+            
+            # Validate fitted parameters are finite
+            if not np.all(np.isfinite(popt)):
+                return 0
+            
             # Calculate fitted curve
             real_fit = voigt(x, *popt)
             
+            # Validate fitted curve is finite (no NaN or inf values)
+            if not np.all(np.isfinite(real_fit)):
+                return 0
+            
             # 6. Check RMSE and normalized RMSE (fit quality)
             RMSE = np.sqrt(np.mean((vector - real_fit)**2))
+            
+            # Validate RMSE is finite
+            if not np.isfinite(RMSE):
+                return 0
             
             # Calculate normalized RMSE (NRMSE) as percentage of data range
             data_range = np.max(vector) - np.min(vector)
@@ -184,10 +197,19 @@ def voigt_fit(data, wavelengths, b1_w, b2_w):
             # Calculate R² (coefficient of determination)
             ss_res = np.sum((vector - real_fit)**2)
             ss_tot = np.sum((vector - np.mean(vector))**2)
+            
+            # Validate ss_res and ss_tot are finite
+            if not np.isfinite(ss_res) or not np.isfinite(ss_tot):
+                return 0
+            
             if ss_tot > 0:
                 r_squared = 1 - (ss_res / ss_tot)
             else:
                 r_squared = -float('inf')
+            
+            # Validate r_squared is finite before comparison
+            if not np.isfinite(r_squared):
+                return 0
             
             print(f"R²: {r_squared:.4f}")
             
@@ -195,6 +217,9 @@ def voigt_fit(data, wavelengths, b1_w, b2_w):
                 return 0
             else:# Calculate signal area and return R²
                 signal_area = np.trapz(real_fit, x)
+                # Validate signal_area is finite before returning
+                if not np.isfinite(signal_area):
+                    return 0
                 return signal_area
         except (RuntimeError, ValueError, TypeError):
             return 0

@@ -165,13 +165,29 @@
     
     <div class="saved-lines" id="pca_section" style="display:none; margin-top: 20px;">
         <h3>PCA Analysis:</h3>
-        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-            <label>Clustering Method:</label>
-            <select id="pca_clustering_method" style="width: 150px; padding: 5px;">
-                <option value="kmeans">K-Means</option>
-                <option value="meanshift">Mean Shift</option>
-            </select>
-            <span class="info-text" style="margin-left: 10px;">K-Means: specify clusters | Mean Shift: density-based</span>
+        <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 10px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <label>Data Source:</label>
+                <select id="pca_data_source" style="width: 200px; padding: 5px;" onchange="updatePCADataSource()">
+                    <option value="complete_spectra">Complete Spectra</option>
+                    <option value="selected_lines">Selected Spectral Lines</option>
+                </select>
+            </div>
+            <div id="pca_lines_selection" style="display: none; padding: 10px; background: white; border: 1px solid #ccc; border-radius: 5px;">
+                <label style="display: block; margin-bottom: 5px;">Select Lines (minimum 3 required):</label>
+                <div id="pca_lines_checkboxes" style="display: flex; flex-wrap: wrap; gap: 10px; max-height: 150px; overflow-y: auto;">
+                    <!-- Checkboxes will be populated dynamically -->
+                </div>
+                <p class="info-text" style="margin-top: 5px; color: #d32f2f;" id="pca_lines_error"></p>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <label>Clustering Method:</label>
+                <select id="pca_clustering_method" style="width: 150px; padding: 5px;">
+                    <option value="kmeans">K-Means</option>
+                    <option value="meanshift">Mean Shift</option>
+                </select>
+                <span class="info-text" style="margin-left: 10px;">K-Means: specify clusters | Mean Shift: density-based</span>
+            </div>
         </div>
         <button onclick="calculatePCA()" style="padding: 5px 15px; background: #27ae60; color: white;">Calculate PCA</button>
     </div>
@@ -372,6 +388,11 @@
                         
                         // Update the saved lines table
                         updateSavedLinesTable();
+                        
+                        // Update PCA line checkboxes if PCA section is visible
+                        if ($('#pca_section').is(':visible')) {
+                            updatePCALinesCheckboxes();
+                        }
                         
                         // Show plot and ratio sections
                         $('#plot_section').show();
@@ -576,6 +597,51 @@
         // Store PCA data
         let pcaData = null;
         
+        function updatePCADataSource() {
+            const dataSource = $('#pca_data_source').val();
+            const linesSelection = $('#pca_lines_selection');
+            
+            if (dataSource === 'selected_lines') {
+                linesSelection.show();
+                updatePCALinesCheckboxes();
+            } else {
+                linesSelection.hide();
+            }
+        }
+        
+        function updatePCALinesCheckboxes() {
+            const checkboxesDiv = $('#pca_lines_checkboxes');
+            checkboxesDiv.empty();
+            $('#pca_lines_error').text('');
+            
+            const lineNames = Object.keys(savedIntensities);
+            
+            if (lineNames.length === 0) {
+                checkboxesDiv.html('<p class="info-text">No saved lines available. Please calculate intensities first.</p>');
+                return;
+            }
+            
+            lineNames.forEach(function(lineName) {
+                const lineData = savedIntensities[lineName];
+                const checkboxId = 'pca_line_' + lineName.replace(/[^a-zA-Z0-9]/g, '_');
+                const checkboxHtml = `
+                    <label style="display: flex; align-items: center; gap: 5px;">
+                        <input type="checkbox" id="${checkboxId}" value="${lineName}" class="pca-line-checkbox">
+                        <span>${lineName} (${lineData.b1_w}-${lineData.b2_w} nm, ${lineData.method})</span>
+                    </label>
+                `;
+                checkboxesDiv.append(checkboxHtml);
+            });
+        }
+        
+        function getSelectedPCALines() {
+            const selectedLines = [];
+            $('.pca-line-checkbox:checked').each(function() {
+                selectedLines.push($(this).val());
+            });
+            return selectedLines;
+        }
+        
         function calculatePCA() {
             const filePath = $('#file_path').val();
             
@@ -584,21 +650,70 @@
                 return;
             }
             
-            // Show loading indicator
+            const dataSource = $('#pca_data_source').val() || 'complete_spectra';
+            const clusteringMethod = $('#pca_clustering_method').val() || 'kmeans';
+            
+            // #region agent log
+            fetch('http://localhost:7242/ingest/1aa7f901-e2dd-47e0-ad41-1ab23463949b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'index.html:637',message:'calculatePCA entry',data:{dataSource:dataSource,clusteringMethod:clusteringMethod,hasFilepath:!!filePath},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+            // #endregion
+            
+            // Validate selected lines if using selected_lines mode and capture them BEFORE replacing HTML
+            let selectedLines = [];
+            if (dataSource === 'selected_lines') {
+                selectedLines = getSelectedPCALines();
+                if (selectedLines.length < 3) {
+                    $('#pca_lines_error').text(`Please select at least 3 lines (currently selected: ${selectedLines.length})`);
+                    return;
+                }
+                $('#pca_lines_error').text('');
+            }
+            
+            // Show loading indicator (AFTER capturing selectedLines)
             const pcaSection = $('#pca_section');
             pcaSection.html('<h3>PCA Analysis:</h3><p>Calculating PCA... Please wait.</p>');
             
-            // Get clustering method from UI
-            const clusteringMethod = $('#pca_clustering_method').val() || 'kmeans';
+            // Prepare request data
+            const requestData = {
+                file_path: filePath,
+                clustering_method: clusteringMethod,
+                data_source: dataSource
+            };
+            
+            // Add selected lines if using selected_lines mode (use captured value)
+            if (dataSource === 'selected_lines') {
+                requestData.selected_lines = selectedLines;
+                
+                // Also send the intensity data for selected lines
+                const linesData = {};
+                selectedLines.forEach(function(lineName) {
+                    if (savedIntensities[lineName]) {
+                        linesData[lineName] = {
+                            intensity: savedIntensities[lineName].intensity,
+                            x_pos: savedIntensities[lineName].x_pos,
+                            y_pos: savedIntensities[lineName].y_pos,
+                            x_len: savedIntensities[lineName].x_len,
+                            y_len: savedIntensities[lineName].y_len,
+                            x_step: savedIntensities[lineName].x_step,
+                            y_step: savedIntensities[lineName].y_step
+                        };
+                    }
+                });
+                requestData.lines_data = linesData;
+                
+                // #region agent log
+                fetch('http://localhost:7242/ingest/1aa7f901-e2dd-47e0-ad41-1ab23463949b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'index.html:662',message:'selected_lines request prep',data:{selectedLines:selectedLines,linesDataKeys:Object.keys(linesData),savedIntensitiesKeys:Object.keys(savedIntensities)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+                // #endregion
+            }
+            
+            // #region agent log
+            fetch('http://localhost:7242/ingest/1aa7f901-e2dd-47e0-ad41-1ab23463949b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'index.html:684',message:'request data before send',data:{dataSource:requestData.data_source,hasLinesData:'lines_data' in requestData,hasSelectedLines:'selected_lines' in requestData,selectedLinesCount:requestData.selected_lines?.length || 0},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+            // #endregion
             
             $.ajax({
                 url: SERVER_URL + '/api/calculate_pca',
                 method: 'POST',
                 contentType: 'application/json',
-                data: JSON.stringify({
-                    file_path: filePath,
-                    clustering_method: clusteringMethod
-                }),
+                data: JSON.stringify(requestData),
                 success: function(data) {
                     if (data.success) {
                         pcaData = data;
@@ -618,19 +733,56 @@
                         // Show k-means map controls
                         $('#kmeans_map_controls').show();
                         
-                        // Restore button
-                        pcaSection.html('<h3>PCA Analysis:</h3><button onclick="calculatePCA()" style="padding: 5px 15px; background: #27ae60; color: white;">Recalculate PCA</button>');
+                        // Restore PCA section HTML
+                        restorePCASection();
                     } else {
                         alert('Error calculating PCA: ' + data.error);
-                        pcaSection.html('<h3>PCA Analysis:</h3><button onclick="calculatePCA()" style="padding: 5px 15px; background: #27ae60; color: white;">Calculate PCA</button>');
+                        restorePCASection();
                     }
                 },
                 error: function(xhr, status, error) {
                     console.error('PCA calculation failed:', error);
                     alert('Failed to calculate PCA: ' + error);
-                    pcaSection.html('<h3>PCA Analysis:</h3><button onclick="calculatePCA()" style="padding: 5px 15px; background: #27ae60; color: white;">Calculate PCA</button>');
+                    restorePCASection();
                 }
             });
+        }
+        
+        function restorePCASection() {
+            // Restore the PCA section HTML with current selections
+            const pcaSection = $('#pca_section');
+            const dataSource = $('#pca_data_source').val() || 'complete_spectra';
+            const clusteringMethod = $('#pca_clustering_method').val() || 'kmeans';
+            
+            let html = '<h3>PCA Analysis:</h3>';
+            html += '<div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 10px;">';
+            html += '<div style="display: flex; align-items: center; gap: 10px;">';
+            html += '<label>Data Source:</label>';
+            html += `<select id="pca_data_source" style="width: 200px; padding: 5px;" onchange="updatePCADataSource()">`;
+            html += `<option value="complete_spectra" ${dataSource === 'complete_spectra' ? 'selected' : ''}>Complete Spectra</option>`;
+            html += `<option value="selected_lines" ${dataSource === 'selected_lines' ? 'selected' : ''}>Selected Spectral Lines</option>`;
+            html += '</select></div>';
+            html += `<div id="pca_lines_selection" style="display: ${dataSource === 'selected_lines' ? 'block' : 'none'}; padding: 10px; background: white; border: 1px solid #ccc; border-radius: 5px;">`;
+            html += '<label style="display: block; margin-bottom: 5px;">Select Lines (minimum 3 required):</label>';
+            html += '<div id="pca_lines_checkboxes" style="display: flex; flex-wrap: wrap; gap: 10px; max-height: 150px; overflow-y: auto;"></div>';
+            html += '<p class="info-text" style="margin-top: 5px; color: #d32f2f;" id="pca_lines_error"></p>';
+            html += '</div>';
+            html += '<div style="display: flex; align-items: center; gap: 10px;">';
+            html += '<label>Clustering Method:</label>';
+            html += `<select id="pca_clustering_method" style="width: 150px; padding: 5px;">`;
+            html += `<option value="kmeans" ${clusteringMethod === 'kmeans' ? 'selected' : ''}>K-Means</option>`;
+            html += `<option value="meanshift" ${clusteringMethod === 'meanshift' ? 'selected' : ''}>Mean Shift</option>`;
+            html += '</select>';
+            html += '<span class="info-text" style="margin-left: 10px;">K-Means: specify clusters | Mean Shift: density-based</span>';
+            html += '</div></div>';
+            html += '<button onclick="calculatePCA()" style="padding: 5px 15px; background: #27ae60; color: white;">Recalculate PCA</button>';
+            
+            pcaSection.html(html);
+            
+            // Update checkboxes if needed
+            if (dataSource === 'selected_lines') {
+                updatePCALinesCheckboxes();
+            }
         }
         
         function plotPCALoadings(data) {

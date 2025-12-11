@@ -88,81 +88,158 @@ def load_file():
 @app.route('/api/calculate_pca', methods=['POST'])
 def calculate_pca():
     """Calculate PCA for given parameters"""
-    file_path = request.json['file_path']
-    if not os.path.exists(file_path):
-        return jsonify({'success': False, 'error': f'File not found: {file_path}'}), 404
-    if not os.path.isfile(file_path):
-        return jsonify({'success': False, 'error': f'Path is not a file: {file_path}'}), 400
     try:
-        with h5py.File(file_path, "r") as file:
-            wavelength = file['measurements/Measurement_1/libs/calibration'][:]
-            data = file['/measurements/Measurement_1/libs/data'][:]
-            x_pos = file['measurements/Measurement_1/libs/metadata/X_pos'][:]
-            y_pos = file['measurements/Measurement_1/libs/metadata/Y_pos'][:]
-            x_len = file['measurements/Measurement_1/libs/metadata/x'][:]
-            y_len = file['measurements/Measurement_1/libs/metadata/y'][:]
-            x_step = file['measurements/Measurement_1/global_metadata/Width Spacing'][:]
-            y_step = file['measurements/Measurement_1/global_metadata/Height Spacing'][:]
+        # Get data source from request (default to 'complete_spectra' for backward compatibility)
+        data_source = request.json.get('data_source', 'complete_spectra')
+        
+        # If data source is selected_lines, get lines_data from request
+        if data_source == 'selected_lines':
+            lines_data = request.json.get('lines_data', {})
+            selected_lines = request.json.get('selected_lines', [])
+            print(f"DEBUG: data_source={data_source}, selected_lines={selected_lines}, lines_data keys={list(lines_data.keys()) if lines_data else []}")
+            if len(selected_lines) < 3:
+                return jsonify({'success': False, 'error': 'At least 3 spectral lines are required for PCA'}), 400
             
-            #normalize the data to standard normal distribution
-            data_snv = snv(data)
-            #calculate pca model
-            pcaModel = PCA(n_components=5).fit(data_snv)
-            # Transform data to get scores (PC values for each sample)
+            if not lines_data or len(lines_data) == 0:
+                return jsonify({'success': False, 'error': 'No line data provided'}), 400
+            
+            # Extract position data from first line (all should have same positions)
+            first_line_name = selected_lines[0]
+            if first_line_name not in lines_data:
+                return jsonify({'success': False, 'error': f'Line data not found for: {first_line_name}'}), 400
+            
+            x_pos = np.array(lines_data[first_line_name]['x_pos'])
+            y_pos = np.array(lines_data[first_line_name]['y_pos'])
+            x_len = lines_data[first_line_name]['x_len']
+            y_len = lines_data[first_line_name]['y_len']
+            x_step = lines_data[first_line_name]['x_step']
+            y_step = lines_data[first_line_name]['y_step']
+            
+            # Extract intensity arrays for each selected line
+            intensity_arrays = []
+            line_names = []
+            
+            for line_name in selected_lines:
+                if line_name not in lines_data:
+                    return jsonify({'success': False, 'error': f'Line data not found for: {line_name}'}), 400
+                
+                line_intensity = np.array(lines_data[line_name]['intensity'])
+                intensity_arrays.append(line_intensity)
+                line_names.append(line_name)
+            
+            # Stack intensities to create feature matrix: rows = samples, columns = lines
+            if len(set(len(arr) for arr in intensity_arrays)) != 1:
+                return jsonify({'success': False, 'error': 'All selected lines must have the same number of data points'}), 400
+            
+            data_for_pca = np.column_stack(intensity_arrays)
+            print(f"PCA from selected lines: {len(selected_lines)} lines, {data_for_pca.shape[0]} samples")
+            
+            # Normalize the data (SNV normalization)
+            data_snv = snv(data_for_pca)
+            
+            # Calculate PCA model
+            n_components = min(5, len(selected_lines))
+            pcaModel = PCA(n_components=n_components).fit(data_snv)
             pca_scores = pcaModel.transform(data_snv)
+            loadings_wavelength = np.arange(len(selected_lines))
             
-            # Get clustering method from request (default to 'kmeans' for backward compatibility)
-            clustering_method = request.json.get('clustering_method', 'kmeans')
+        else:
+            # Default: use complete spectra - need file_path
+            file_path = request.json.get('file_path')
+            if not file_path:
+                return jsonify({'success': False, 'error': 'file_path is required for complete_spectra data source'}), 400
             
-            # Apply clustering based on selected method
-            if clustering_method == 'meanshift':
-                # Mean Shift clustering - prefers density
-                # Estimate bandwidth automatically
-                bandwidth = estimate_bandwidth(pca_scores[:,[0,1]], quantile=0.2, n_samples=min(500, len(pca_scores)))
-                meanshift = MeanShift(bandwidth=bandwidth, bin_seeding=True)
-                cluster = meanshift.fit_predict(pca_scores[:,[0,1]])
-                print(f"Mean Shift clustering: {cluster}, bandwidth: {bandwidth}, n_clusters: {len(np.unique(cluster))}")
-            else:
-                # Default to k-means clustering
-                kmeans = KMeans(n_clusters=3, random_state=42) #random state for reproducibility
-                cluster = kmeans.fit_predict(pca_scores[:,[0,1]])
-                print(f"K-means clustering: {cluster}")
+            if not os.path.exists(file_path):
+                return jsonify({'success': False, 'error': f'File not found: {file_path}'}), 404
+            if not os.path.isfile(file_path):
+                return jsonify({'success': False, 'error': f'Path is not a file: {file_path}'}), 400
             
-            # Calculate k-means scree plot data (inertia for 1-10 clusters)
-            # Use PCA scores for k-means clustering
-            n_clusters_range = list(range(1, 11))
-            inertias = []
-            for n_clusters in n_clusters_range:
-                kmeans_scree = KMeans(n_clusters=n_clusters, random_state=42, n_init=30)
-                kmeans_scree.fit(pca_scores[:, :3])  # Use first 3 PC scores
-                inertias.append(float(kmeans_scree.inertia_))
-            
-            # Get explained variance ratios
-            explained_variance = pcaModel.explained_variance_ratio_
-            
-            return jsonify({
-                'success': True, 
-                'wavelength': wavelength.tolist(),
-                'x_pos': x_pos.tolist(),
-                'y_pos': y_pos.tolist(),
-                'x_len': x_len.tolist(),
-                'y_len': y_len.tolist(),
-                'x_step': x_step.tolist(),
-                'y_step': y_step.tolist(),
-                'PC1': pcaModel.components_[0].tolist(),  # Loadings
-                'PC2': pcaModel.components_[1].tolist(),  # Loadings
-                'PC3': pcaModel.components_[2].tolist(),  # Loadings
-                'PC1_scores': pca_scores[:, 0].tolist(),  # Scores for plotting
-                'PC2_scores': pca_scores[:, 1].tolist(),  # Scores for plotting
-                'PC3_scores': pca_scores[:, 2].tolist(),  # Scores for plotting
-                'explained_variance_PC1': float(explained_variance[0]),
-                'explained_variance_PC2': float(explained_variance[1]),
-                'explained_variance_PC3': float(explained_variance[2]),
-                'kmeans_labels': cluster.tolist(),
-                'kmeans_n_clusters': n_clusters_range,  # [1, 2, 3, ..., 10]
-                'kmeans_inertias': inertias,  # Inertia values for each n_clusters
-                'clustering_method': clustering_method  # Return the method used
-            })
+            with h5py.File(file_path, "r") as file:
+                wavelength = file['measurements/Measurement_1/libs/calibration'][:]
+                data = file['/measurements/Measurement_1/libs/data'][:]
+                x_pos = file['measurements/Measurement_1/libs/metadata/X_pos'][:]
+                y_pos = file['measurements/Measurement_1/libs/metadata/Y_pos'][:]
+                x_len = file['measurements/Measurement_1/libs/metadata/x'][:]
+                y_len = file['measurements/Measurement_1/libs/metadata/y'][:]
+                x_step = file['measurements/Measurement_1/global_metadata/Width Spacing'][:]
+                y_step = file['measurements/Measurement_1/global_metadata/Height Spacing'][:]
+                
+                #normalize the data to standard normal distribution
+                data_snv = snv(data)
+                #calculate pca model
+                pcaModel = PCA(n_components=5).fit(data_snv)
+                # Transform data to get scores (PC values for each sample)
+                pca_scores = pcaModel.transform(data_snv)
+                loadings_wavelength = wavelength
+        
+        # Get clustering method from request (default to 'kmeans' for backward compatibility)
+        clustering_method = request.json.get('clustering_method', 'kmeans')
+        
+        # Apply clustering based on selected method
+        if clustering_method == 'meanshift':
+            # Mean Shift clustering - prefers density
+            # Estimate bandwidth automatically
+            bandwidth = estimate_bandwidth(pca_scores[:,[0,1]], quantile=0.2, n_samples=min(500, len(pca_scores)))
+            meanshift = MeanShift(bandwidth=bandwidth, bin_seeding=True)
+            cluster = meanshift.fit_predict(pca_scores[:,[0,1]])
+            print(f"Mean Shift clustering: {cluster}, bandwidth: {bandwidth}, n_clusters: {len(np.unique(cluster))}")
+        else:
+            # Default to k-means clustering
+            kmeans = KMeans(n_clusters=3, random_state=42) #random state for reproducibility
+            cluster = kmeans.fit_predict(pca_scores[:,[0,1]])
+            print(f"K-means clustering: {cluster}")
+        
+        # Calculate k-means scree plot data (inertia for 1-10 clusters)
+        # Use PCA scores for k-means clustering
+        n_clusters_range = list(range(1, 11))
+        inertias = []
+        max_pc_for_scree = min(3, pca_scores.shape[1])
+        for n_clusters in n_clusters_range:
+            kmeans_scree = KMeans(n_clusters=n_clusters, random_state=42, n_init=30)
+            kmeans_scree.fit(pca_scores[:, :max_pc_for_scree])  # Use available PC scores
+            inertias.append(float(kmeans_scree.inertia_))
+        
+        # Get explained variance ratios
+        explained_variance = pcaModel.explained_variance_ratio_
+        
+        # Prepare response data
+        response_data = {
+            'success': True,
+            'wavelength': loadings_wavelength.tolist() if isinstance(loadings_wavelength, np.ndarray) else loadings_wavelength,
+            'x_pos': x_pos.tolist() if isinstance(x_pos, np.ndarray) else x_pos,
+            'y_pos': y_pos.tolist() if isinstance(y_pos, np.ndarray) else y_pos,
+            'x_len': x_len.tolist() if isinstance(x_len, np.ndarray) else x_len,
+            'y_len': y_len.tolist() if isinstance(y_len, np.ndarray) else y_len,
+            'x_step': x_step.tolist() if isinstance(x_step, np.ndarray) else x_step,
+            'y_step': y_step.tolist() if isinstance(y_step, np.ndarray) else y_step,
+            'PC1_scores': pca_scores[:, 0].tolist(),  # Scores for plotting
+            'explained_variance_PC1': float(explained_variance[0]),
+            'kmeans_labels': cluster.tolist(),
+            'kmeans_n_clusters': n_clusters_range,  # [1, 2, 3, ..., 10]
+            'kmeans_inertias': inertias,  # Inertia values for each n_clusters
+            'clustering_method': clustering_method,  # Return the method used
+            'data_source': data_source  # Return the data source used
+        }
+        
+        # Add PC2 and PC3 if available
+        if pca_scores.shape[1] >= 2:
+            response_data['PC2'] = pcaModel.components_[1].tolist()
+            response_data['PC2_scores'] = pca_scores[:, 1].tolist()
+            response_data['explained_variance_PC2'] = float(explained_variance[1])
+        
+        if pca_scores.shape[1] >= 3:
+            response_data['PC3'] = pcaModel.components_[2].tolist()
+            response_data['PC3_scores'] = pca_scores[:, 2].tolist()
+            response_data['explained_variance_PC3'] = float(explained_variance[2])
+        
+        # Always include PC1 loadings
+        response_data['PC1'] = pcaModel.components_[0].tolist()
+        
+        # If using selected lines, include line names for reference
+        if data_source == 'selected_lines':
+            response_data['selected_line_names'] = line_names if 'line_names' in locals() else []
+        
+        return jsonify(response_data)
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
