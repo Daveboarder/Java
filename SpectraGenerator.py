@@ -39,11 +39,11 @@ print(f"me: {me}")
 
 #read sample wavelengths
 
-file_path = '/home/LIBS/prochazka/data/Running_projects/25_0069_3D_chemical_imaging/Measurements/mandible 266nm/mandible_266_v1.h5'
-with h5py.File(file_path, 'r') as file:
-    wavelength = file['measurements/Measurement_1/libs/calibration'][:]
+#file_path = '/home/LIBS/prochazka/data/Running_projects/25_0069_3D_chemical_imaging/Measurements/mandible 266nm/mandible_266_v1.h5'
+#with h5py.File(file_path, 'r') as file:
+#    wavelength = file['measurements/Measurement_1/libs/calibration'][:]
 
-element = 'Li'
+#element = 'Li'
 
 def create_spectra(element, wavelength, Te=12705, Ne=1.79e+18, N=1e-4, C=1, l=1.4e-04):
     """
@@ -112,11 +112,11 @@ def create_spectra(element, wavelength, Te=12705, Ne=1.79e+18, N=1e-4, C=1, l=1.
 
     return Ifin_voigt
 
-Ifin_voigt = create_spectra(element, wavelength, Te, Ne, N, C, l)
+#Ifin_voigt = create_spectra(element, wavelength, Te, Ne, N, C, l)
 #Plot Ifin_voigt as a function of wavelength using plotly
-import plotly.graph_objects as go
-fig = go.Figure()
-fig.add_trace(go.Scatter(x=wavelength, y=Ifin_voigt, mode='lines', name=f'Spectrum: {element}'))
-fig.update_layout(title=f'Spectrum: {element}', xaxis_title='Wavelength (nm)', yaxis_title='Intensity (a.u.)')
-fig.write_html('SpectraGenerator.html')
-print("Plot saved to SpectraGenerator.html")
+#import plotly.graph_objects as go
+#fig = go.Figure()
+#fig.add_trace(go.Scatter(x=wavelength, y=Ifin_voigt, mode='lines', name=f'Spectrum: {element}'))
+#fig.update_layout(title=f'Spectrum: {element}', xaxis_title='Wavelength (nm)', yaxis_title='Intensity (a.u.)')
+#fig.write_html('SpectraGenerator.html')
+#print("Plot saved to SpectraGenerator.html")

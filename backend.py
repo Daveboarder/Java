@@ -27,6 +27,9 @@ import os
 app = Flask(__name__)
 CORS(app)  # Allow cross-origin requests if needed
 
+# Global variable to store wavelength data
+wavelength = None
+
 @app.route('/')
 def index():
     """Serve the index.html file"""
@@ -56,6 +59,7 @@ def load_file():
         return jsonify({'success': False, 'error': f'Path is not a file: {file_path}'}), 400
     
     try:
+        global wavelength
         with h5py.File(file_path, "r") as file:
             wavelength = file['measurements/Measurement_1/libs/calibration'][:]
             data = file['/measurements/Measurement_1/libs/data'][:]
@@ -405,6 +409,12 @@ def plot_kmeans_map():
 @app.route('/api/calculate_intensity', methods=['POST'])
 def calculate_intensity():
     """Calculate peak intensity for given parameters"""
+    global wavelength
+    
+    # Check if wavelength is loaded
+    if wavelength is None:
+        return jsonify({'success': False, 'error': 'Wavelength data not loaded. Please load a file first.'}), 400
+    
     file_path = request.json['file_path']
     b1_w = request.json['b1_w']
     b2_w = request.json['b2_w']
@@ -412,10 +422,18 @@ def calculate_intensity():
     if b1_w > b2_w:
         b1_w, b2_w = b2_w, b1_w
     
+    # Convert to numpy array if not already
+    wavelength = np.array(wavelength)
+
+    b1_idx = np.argmin(np.abs(wavelength - float(b1_w)))
+    b2_idx = np.argmin(np.abs(wavelength - float(b2_w)))
+    
+    # Slice wavelength to match data slice
+    wavelength_slice = wavelength[b1_idx:b2_idx]
+    
     try:
         with h5py.File(file_path, "r") as file:
-            wavelength = file['measurements/Measurement_1/libs/calibration'][:]
-            data = file['/measurements/Measurement_1/libs/data'][:]
+            data = file['/measurements/Measurement_1/libs/data'][:,b1_idx:b2_idx]
             x_pos = file['measurements/Measurement_1/libs/metadata/X_pos'][:]
             y_pos = file['measurements/Measurement_1/libs/metadata/Y_pos'][:]
             x_len = file['measurements/Measurement_1/libs/metadata/x'][:]
@@ -425,25 +443,22 @@ def calculate_intensity():
             #Select the method of intensity calculation
             method = request.json['method']
             if method == 'voigt_fit':
-                intensity = voigt_fit(data, wavelength, b1_w, b2_w)
+                intensity = voigt_fit(data, wavelength_slice, b1_w, b2_w)
             elif method == 'peak_intensity':
-                intensity = peak_intensity(data, wavelength, b1_w, b2_w)
+                intensity = peak_intensity(data, wavelength_slice, b1_w, b2_w)
             elif method == 'simple_sum':
-                intensity = simple_sum(data, wavelength, b1_w, b2_w)
+                intensity = simple_sum(data, wavelength_slice, b1_w, b2_w)
             elif method == 'simple_voigt_fit':
-                intensity = simple_voigt_fit(data, wavelength, b1_w, b2_w)
+                intensity = simple_voigt_fit(data, wavelength_slice, b1_w, b2_w)
             else:   #default to voigt_fit
-                intensity = simple_voigt_fit(data, wavelength, b1_w, b2_w)
+                intensity = simple_voigt_fit(data, wavelength_slice, b1_w, b2_w)
                 return jsonify({'success': False, 'error': 'Invalid method'}), 400
             
             # Calculate central wavelength (a1_w) - peak position in the wavelength range
-            b1_idx = np.argmin(np.abs(wavelength - b1_w))
-            b2_idx = np.argmin(np.abs(wavelength - b2_w))
             # Use average spectrum to find peak
-            avg_spectrum = np.mean(data[:, b1_idx:b2_idx], axis=0)
+            avg_spectrum = np.mean(data, axis=0)
             peak_idx = np.argmax(avg_spectrum)
-            a1_idx = b1_idx + peak_idx
-            a1_w = float(wavelength[a1_idx])
+            a1_w = float(wavelength_slice[peak_idx])
             
             return jsonify({
                 'success': True,
